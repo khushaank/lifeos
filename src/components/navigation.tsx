@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { LayoutDashboard, CheckSquare, BrainCircuit, Settings, LogOut, Flame, CalendarDays } from "lucide-react";
+import { LayoutDashboard, CheckSquare, BrainCircuit, Settings, LogOut, Flame, CalendarDays, ChevronLeft, ChevronRight } from "lucide-react";
 import { useLifeStore } from "@/store/useLifeStore";
 import { cn } from "@/lib/utils";
 
@@ -10,6 +10,8 @@ export function Navigation() {
   const pathname = usePathname();
   const router = useRouter();
   const setAuthenticated = useLifeStore((state) => state.setAuthenticated);
+  const isSidebarCollapsed = useLifeStore((state) => state.isSidebarCollapsed);
+  const setSidebarCollapsed = useLifeStore((state) => state.setSidebarCollapsed);
 
   const navItems = [
     { name: "Dashboard", href: "/", icon: LayoutDashboard },
@@ -27,12 +29,26 @@ export function Navigation() {
   return (
     <>
       {/* Desktop Sidebar */}
-      <aside className="fixed inset-y-0 left-0 hidden w-64 flex-col border-r border-slate-200 bg-white px-6 py-8 md:flex shadow-sm z-30">
-        <div className="flex items-center gap-2.5 px-2 pb-8">
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-teal-500 text-white shadow-md shadow-teal-500/20">
+      <aside
+        className={cn(
+          "fixed inset-y-0 left-0 hidden flex-col border-r border-slate-200 bg-white py-8 shadow-sm z-30 transition-all duration-300 ease-in-out md:flex",
+          isSidebarCollapsed ? "w-20 px-3" : "w-64 px-6"
+        )}
+      >
+        {/* Floating Collapse Toggle Button */}
+        <button
+          onClick={() => setSidebarCollapsed(!isSidebarCollapsed)}
+          className="hidden md:flex absolute top-7 -right-3 h-6 w-6 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-500 hover:text-slate-800 hover:bg-slate-50 shadow-sm cursor-pointer z-50"
+          title={isSidebarCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
+        >
+          {isSidebarCollapsed ? <ChevronRight className="h-3.5 w-3.5" /> : <ChevronLeft className="h-3.5 w-3.5" />}
+        </button>
+
+        <div className={cn("flex items-center gap-2.5 px-2 pb-8", isSidebarCollapsed && "justify-center px-0")}>
+          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-teal-500 text-white shadow-md shadow-teal-500/20 flex-shrink-0">
             <Flame className="h-5 w-5 fill-current" />
           </div>
-          <span className="text-xl font-bold tracking-tight text-slate-800">LifeOS</span>
+          {!isSidebarCollapsed && <span className="text-xl font-bold tracking-tight text-slate-800">LifeOS</span>}
         </div>
 
         <nav className="flex flex-1 flex-col gap-1.5">
@@ -43,15 +59,17 @@ export function Navigation() {
               <Link
                 key={item.href}
                 href={item.href}
+                title={isSidebarCollapsed ? item.name : undefined}
                 className={cn(
-                  "flex items-center gap-3 rounded-xl px-4 py-3.5 text-sm font-medium transition-all duration-200 cursor-pointer",
+                  "flex items-center gap-3 rounded-xl py-3.5 text-sm font-medium transition-all duration-200 cursor-pointer",
+                  isSidebarCollapsed ? "justify-center px-0 mx-1" : "px-4",
                   isActive
                     ? "bg-teal-50 text-teal-600 border-l-4 border-teal-500 shadow-sm"
                     : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
                 )}
               >
-                <Icon className={cn("h-5 w-5", isActive ? "text-teal-500" : "text-slate-400")} />
-                {item.name}
+                <Icon className={cn("h-5 w-5 flex-shrink-0", isActive ? "text-teal-500" : "text-slate-400")} />
+                {!isSidebarCollapsed && <span>{item.name}</span>}
               </Link>
             );
           })}
@@ -59,10 +77,14 @@ export function Navigation() {
 
         <button
           onClick={handleLogout}
-          className="mt-auto flex items-center gap-3 rounded-xl px-4 py-3.5 text-sm font-medium text-rose-600 transition-all hover:bg-rose-50 hover:text-rose-700 cursor-pointer"
+          title={isSidebarCollapsed ? "Logout" : undefined}
+          className={cn(
+            "mt-auto flex items-center gap-3 rounded-xl py-3.5 text-sm font-medium text-rose-600 transition-all hover:bg-rose-50 hover:text-rose-700 cursor-pointer",
+            isSidebarCollapsed ? "justify-center px-0 mx-1" : "px-4"
+          )}
         >
-          <LogOut className="h-5 w-5" />
-          Logout
+          <LogOut className="h-5 w-5 flex-shrink-0" />
+          {!isSidebarCollapsed && <span>Logout</span>}
         </button>
       </aside>
 

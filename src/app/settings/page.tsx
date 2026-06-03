@@ -10,6 +10,16 @@ import { CalendarDays, Database, Download, KeyRound, ShieldAlert, Trash2, Upload
 import { downloadTextFile } from "@/lib/integrations";
 import { getStoredGoogleClientId, saveGoogleClientId } from "@/lib/google";
 
+import { cn } from "@/lib/utils";
+
+async function hashPassword(password: string): Promise<string> {
+  const encoder = new TextEncoder();
+  const data = encoder.encode(password);
+  const hashBuffer = await crypto.subtle.digest("SHA-256", data);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+
 export default function SettingsPage() {
   const clearAllData = useLifeStore((state) => state.clearAllData);
   const entries = useLifeStore((state) => state.entries);
@@ -18,21 +28,36 @@ export default function SettingsPage() {
   const updateGoal = useLifeStore((state) => state.updateGoal);
   const importData = useLifeStore((state) => state.importData);
   const exportData = useLifeStore((state) => state.exportData);
+  const isSidebarCollapsed = useLifeStore((state) => state.isSidebarCollapsed);
 
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [newKey, setNewKey] = useState("");
   const [googleClientId, setGoogleClientId] = useState(getStoredGoogleClientId());
   const [status, setStatus] = useState<string | null>(null);
 
-  const handleUpdateKey = (event: React.FormEvent) => {
+  const handleUpdateKey = async (event: React.FormEvent) => {
     event.preventDefault();
     if (newKey.length < 6) {
-      setStatus("Access key must be at least 6 characters.");
+      setStatus("Password must be at least 6 characters.");
       return;
     }
-    localStorage.setItem("lifeos-access-key", newKey);
-    setNewKey("");
-    setStatus("Access key updated for this browser.");
+    try {
+      const passwordHash = await hashPassword(newKey);
+      const res = await fetch("/api/auth/update-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ passwordHash }),
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setNewKey("");
+        setStatus("Password updated successfully in Supabase.");
+      } else {
+        setStatus(data.error || "Failed to update password.");
+      }
+    } catch (err) {
+      setStatus("Error updating password. Please try again.");
+    }
   };
 
   const handleExport = () => {
@@ -63,7 +88,12 @@ export default function SettingsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 font-sans md:pl-64 pb-20">
+    <div
+      className={cn(
+        "min-h-screen bg-slate-50 font-sans pb-20 transition-all duration-300 ease-in-out",
+        isSidebarCollapsed ? "md:pl-20" : "md:pl-64"
+      )}
+    >
       <Navigation />
       <main className="mx-auto max-w-4xl px-4 py-6 md:px-8 space-y-5">
         <div className="bg-white rounded-2xl px-6 py-5 shadow-sm border border-slate-100">
@@ -148,15 +178,15 @@ export default function SettingsPage() {
               <KeyRound className="h-5 w-5 text-teal-500" />
             </div>
             <div>
-              <CardTitle className="text-sm font-bold text-slate-800">Access Key</CardTitle>
-              <CardDescription className="text-xs text-slate-400">Stored only in this browser for static hosting</CardDescription>
+              <CardTitle className="text-sm font-bold text-slate-800">Change Password</CardTitle>
+              <CardDescription className="text-xs text-slate-400">Updates the access password hashed in Supabase</CardDescription>
             </div>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleUpdateKey} className="flex flex-col gap-3 sm:flex-row">
-              <Input type="password" value={newKey} onChange={(event) => setNewKey(event.target.value)} placeholder="New access key" className="h-10 bg-slate-50 border-slate-200" />
+              <Input type="password" value={newKey} onChange={(event) => setNewKey(event.target.value)} placeholder="New password" className="h-10 bg-slate-50 border-slate-200" />
               <Button type="submit" className="bg-teal-500 hover:bg-teal-600 text-white font-semibold cursor-pointer h-10">
-                Save Key
+                Save Password
               </Button>
             </form>
           </CardContent>

@@ -18,7 +18,7 @@ export async function POST(request: Request) {
 
     let storedHash = data?.value;
 
-    const defaultHash = "5994471abb01112afcc18159f6cc74b4f511b99806da59b3caf5a9c173cacfc5";
+    const defaultHash = "3a033d1bcf4a1123f33ec669f804feebc4a4aae0def6e7ecfdff39a91dc68b9b";
     if (error || !storedHash) {
       await supabaseAdmin
         .from("app_settings")

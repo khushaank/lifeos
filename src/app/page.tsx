@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { PlusCircle, Calendar, RefreshCw, ChevronRight, Activity, BookOpen, Clock, Flame, ListTodo } from "lucide-react";
 import Link from "next/link";
+import { cn } from "@/lib/utils";
 
 export default function DashboardPage() {
   const entries = useLifeStore((state) => state.entries);
@@ -17,6 +18,7 @@ export default function DashboardPage() {
   const updateTask = useLifeStore((state) => state.updateTask);
   const fetchEntries = useLifeStore((state) => state.fetchEntries);
   const isSyncing = useLifeStore((state) => state.isSyncing);
+  const isSidebarCollapsed = useLifeStore((state) => state.isSidebarCollapsed);
 
   useEffect(() => {
     fetchEntries();
@@ -31,7 +33,12 @@ export default function DashboardPage() {
   const loggedToday = entries.some((e) => e.date === todayStr);
 
   return (
-    <div className="min-h-screen bg-slate-50 font-sans md:pl-64 pb-20">
+    <div
+      className={cn(
+        "min-h-screen bg-slate-50 font-sans pb-20 transition-all duration-300 ease-in-out",
+        isSidebarCollapsed ? "md:pl-20" : "md:pl-64"
+      )}
+    >
       <Navigation />
 
       <main className="mx-auto max-w-7xl px-4 py-6 md:px-8 space-y-6">

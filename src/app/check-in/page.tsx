@@ -13,6 +13,8 @@ import { Switch } from "@/components/ui/switch";
 import { Navigation } from "@/components/navigation";
 import { Save, Smile, Moon, Brain, Flame, Trash2, Activity } from "lucide-react";
 
+import { cn } from "@/lib/utils";
+
 const MOOD_LABELS = ["Terrible", "Bad", "Below Average", "Average", "Good", "Great", "Excellent", "Harvey"];
 const MOOD_COLORS = ["text-rose-600", "text-orange-500", "text-amber-500", "text-yellow-500", "text-lime-500", "text-green-500", "text-emerald-500", "text-teal-600"];
 const MOOD_EMOJIS = ["😞", "😕", "😐", "🙂", "😊", "😄", "🌟", "🔥"];
@@ -49,6 +51,7 @@ export default function CheckInPage() {
   const addOrUpdateEntry = useLifeStore((state) => state.addOrUpdateEntry);
   const deleteEntry = useLifeStore((state) => state.deleteEntry);
   const entries = useLifeStore((state) => state.entries);
+  const isSidebarCollapsed = useLifeStore((state) => state.isSidebarCollapsed);
 
   const [date, setDate] = useState(new Date().toISOString().split("T")[0]);
   const [moodScore, setMoodScore] = useState(5);
@@ -130,7 +133,12 @@ export default function CheckInPage() {
   const lifeScore = calculateLifeScore({ moodScore, sleepQuality, focusLevel, productivityLevel, stressLevel, workoutDone });
 
   return (
-    <div className="min-h-screen bg-slate-50 font-sans md:pl-64 pb-24">
+    <div
+      className={cn(
+        "min-h-screen bg-slate-50 font-sans pb-24 transition-all duration-300 ease-in-out",
+        isSidebarCollapsed ? "md:pl-20" : "md:pl-64"
+      )}
+    >
       <Navigation />
       <main className="mx-auto max-w-3xl px-4 py-6 md:px-8">
         {/* Header */}

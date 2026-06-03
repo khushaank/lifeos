@@ -11,6 +11,8 @@ import { useLifeStore, type LifeTask } from "@/store/useLifeStore";
 import { connectGoogle, disconnectGoogle, hasGoogleToken, syncTaskToGoogle } from "@/lib/google";
 import { CalendarPlus, CheckCircle2, Circle, Link2, ListTodo, Plus, Trash2 } from "lucide-react";
 
+import { cn } from "@/lib/utils";
+
 const priorities: LifeTask["priority"][] = ["Medium", "High", "Low"];
 const areas: LifeTask["area"][] = ["Work", "Health", "Learning", "Personal"];
 
@@ -19,6 +21,7 @@ export default function PlannerPage() {
   const addTask = useLifeStore((state) => state.addTask);
   const updateTask = useLifeStore((state) => state.updateTask);
   const deleteTask = useLifeStore((state) => state.deleteTask);
+  const isSidebarCollapsed = useLifeStore((state) => state.isSidebarCollapsed);
 
   const today = new Date().toISOString().split("T")[0];
   const [title, setTitle] = useState("");
@@ -100,7 +103,12 @@ export default function PlannerPage() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 font-sans md:pl-64 pb-24">
+    <div
+      className={cn(
+        "min-h-screen bg-slate-50 font-sans pb-24 transition-all duration-300 ease-in-out",
+        isSidebarCollapsed ? "md:pl-20" : "md:pl-64"
+      )}
+    >
       <Navigation />
 
       <main className="mx-auto max-w-7xl px-4 py-6 md:px-8 space-y-6">
