@@ -6,9 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Navigation } from "@/components/navigation";
-import { CalendarDays, Database, Download, KeyRound, ShieldAlert, Trash2, Upload } from "lucide-react";
+import { Database, Download, KeyRound, ShieldAlert, Trash2, Upload } from "lucide-react";
 import { downloadTextFile } from "@/lib/integrations";
-import { getStoredGoogleClientId, saveGoogleClientId } from "@/lib/google";
 
 import { cn } from "@/lib/utils";
 
@@ -32,7 +31,6 @@ export default function SettingsPage() {
 
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [newKey, setNewKey] = useState("");
-  const [googleClientId, setGoogleClientId] = useState(getStoredGoogleClientId());
   const [status, setStatus] = useState<string | null>(null);
 
   const handleUpdateKey = async (event: React.FormEvent) => {
@@ -81,11 +79,7 @@ export default function SettingsPage() {
     }
   };
 
-  const handleSaveGoogle = (event: React.FormEvent) => {
-    event.preventDefault();
-    saveGoogleClientId(googleClientId);
-    setStatus("Google Client ID saved. Connect from Planner to sync tasks and events.");
-  };
+
 
   return (
     <div
@@ -142,35 +136,7 @@ export default function SettingsPage() {
           </CardContent>
         </Card>
 
-        <Card className="bg-white border-slate-100 shadow-sm rounded-2xl">
-          <CardHeader className="flex flex-row items-center gap-3 pb-2">
-            <div className="h-9 w-9 rounded-xl bg-sky-50 ring-1 ring-sky-200 flex items-center justify-center">
-              <CalendarDays className="h-5 w-5 text-sky-500" />
-            </div>
-            <div>
-              <CardTitle className="text-sm font-bold text-slate-800">Google Account Integration</CardTitle>
-              <CardDescription className="text-xs text-slate-400">Used for direct Calendar and Tasks sync in Planner</CardDescription>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleSaveGoogle} className="space-y-3">
-              <Input
-                value={googleClientId}
-                onChange={(event) => setGoogleClientId(event.target.value)}
-                placeholder="Google OAuth Web Client ID"
-                className="h-10 bg-slate-50 border-slate-200"
-              />
-              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                <p className="text-xs text-slate-500">
-                  Enable Google Calendar API and Google Tasks API for this OAuth client. Add your GitHub Pages URL as an authorized JavaScript origin.
-                </p>
-                <Button type="submit" className="bg-sky-500 hover:bg-sky-600 text-white font-semibold cursor-pointer h-10">
-                  Save Google ID
-                </Button>
-              </div>
-            </form>
-          </CardContent>
-        </Card>
+
 
         <Card className="bg-white border-slate-100 shadow-sm rounded-2xl">
           <CardHeader className="flex flex-row items-center gap-3 pb-2">

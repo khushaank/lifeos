@@ -6,8 +6,7 @@ import { useLifeStore } from "@/store/useLifeStore";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Flame, Loader2, Lock, Moon, Sparkles, TrendingUp, Zap, CalendarDays, ChevronDown, ChevronUp } from "lucide-react";
-import { saveGoogleClientId, getStoredGoogleClientId } from "@/lib/google";
+import { Flame, Loader2, Lock, Moon, Sparkles, TrendingUp, Zap } from "lucide-react";
 
 async function hashPassword(password: string): Promise<string> {
   const encoder = new TextEncoder();
@@ -22,9 +21,6 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
-  const [showGoogleSetup, setShowGoogleSetup] = useState(false);
-  const [googleClientId, setGoogleClientId] = useState(getStoredGoogleClientId());
-  const [googleSaved, setGoogleSaved] = useState(false);
   const router = useRouter();
   const setAuthenticated = useLifeStore((state) => state.setAuthenticated);
 
@@ -55,14 +51,6 @@ export default function LoginPage() {
       setError("Unable to connect to the server. Please try again.");
     } finally {
       setLoading(false);
-    }
-  };
-
-  const handleSaveGoogleId = () => {
-    if (googleClientId.trim()) {
-      saveGoogleClientId(googleClientId.trim());
-      setGoogleSaved(true);
-      setTimeout(() => setGoogleSaved(false), 3000);
     }
   };
 
@@ -170,70 +158,8 @@ export default function LoginPage() {
             </Button>
           </form>
 
-          {/* Google Client ID Setup Section */}
-          <div className="border-t border-slate-200 pt-5">
-            <button
-              type="button"
-              onClick={() => setShowGoogleSetup(!showGoogleSetup)}
-              className="flex items-center justify-between w-full text-left cursor-pointer group"
-            >
-              <div className="flex items-center gap-2">
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-sky-50 ring-1 ring-sky-200">
-                  <CalendarDays className="h-4 w-4 text-sky-500" />
-                </div>
-                <div>
-                  <p className="text-sm font-semibold text-slate-700">Google Calendar & Tasks</p>
-                  <p className="text-[11px] text-slate-400">Paste your OAuth Client ID to enable sync</p>
-                </div>
-              </div>
-              {showGoogleSetup ? (
-                <ChevronUp className="h-4 w-4 text-slate-400" />
-              ) : (
-                <ChevronDown className="h-4 w-4 text-slate-400" />
-              )}
-            </button>
-
-            {showGoogleSetup && (
-              <div className="mt-4 space-y-3">
-                <div className="space-y-2">
-                  <Label htmlFor="google-client-id" className="text-slate-700 font-semibold text-sm">
-                    Google OAuth Client ID
-                  </Label>
-                  <Input
-                    id="google-client-id"
-                    type="text"
-                    value={googleClientId}
-                    onChange={(event) => setGoogleClientId(event.target.value)}
-                    placeholder="123456789-abc.apps.googleusercontent.com"
-                    className="h-11 bg-white border-slate-200 text-slate-800 placeholder-slate-400 focus-visible:ring-sky-400 focus-visible:border-sky-400 shadow-sm rounded-xl text-sm"
-                  />
-                </div>
-                <div className="flex items-center gap-3">
-                  <Button
-                    type="button"
-                    onClick={handleSaveGoogleId}
-                    disabled={!googleClientId.trim()}
-                    className="bg-sky-500 hover:bg-sky-600 text-white font-semibold cursor-pointer rounded-xl h-10 text-sm"
-                  >
-                    Save Client ID
-                  </Button>
-                  {googleSaved && (
-                    <span className="text-xs text-emerald-600 font-medium">✓ Saved to this browser</span>
-                  )}
-                </div>
-                <p className="text-[11px] text-slate-400 leading-relaxed">
-                  Create an OAuth 2.0 Client ID in the{" "}
-                  <a href="https://console.cloud.google.com/apis/credentials" target="_blank" rel="noopener noreferrer" className="text-sky-500 hover:underline">
-                    Google Cloud Console
-                  </a>
-                  . Enable Google Calendar API and Google Tasks API. Add your site URL as an authorized JavaScript origin.
-                </p>
-              </div>
-            )}
-          </div>
-
           <p className="text-xs text-slate-400 text-center">
-            Password verified against your Supabase vault. No data is stored in this browser.
+            Password verified against your Supabase vault. No session data is stored in this browser.
           </p>
         </div>
       </div>

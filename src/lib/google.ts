@@ -32,8 +32,8 @@ declare global {
 let accessToken: string | null = null;
 
 export function getStoredGoogleClientId() {
-  if (typeof window === "undefined") return process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || "";
-  return localStorage.getItem("lifeos-google-client-id") || process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || "";
+  if (typeof window === "undefined") return process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || "390278448587-68evhbhdm0sohmjqs6ikdvrth1ngue0p.apps.googleusercontent.com";
+  return localStorage.getItem("lifeos-google-client-id") || process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || "390278448587-68evhbhdm0sohmjqs6ikdvrth1ngue0p.apps.googleusercontent.com";
 }
 
 export function saveGoogleClientId(clientId: string) {
