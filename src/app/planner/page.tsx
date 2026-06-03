@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Navigation } from "@/components/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -8,8 +8,17 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useLifeStore, type LifeTask } from "@/store/useLifeStore";
-import { connectGoogle, disconnectGoogle, hasGoogleToken, syncTaskToGoogle } from "@/lib/google";
-import { CalendarPlus, CheckCircle2, Circle, Link2, ListTodo, Plus, Trash2 } from "lucide-react";
+import {
+  connectGoogle,
+  disconnectGoogle,
+  hasGoogleToken,
+  syncTaskToGoogle,
+  fetchGoogleCalendarEvents,
+  fetchGoogleTasks,
+  type GoogleCalendarEvent,
+  type GoogleTaskItem,
+} from "@/lib/google";
+import { CalendarPlus, CheckCircle2, Circle, Link2, ListTodo, Plus, Trash2, Calendar, CheckSquare, Loader2 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 
@@ -33,6 +42,65 @@ export default function PlannerPage() {
   const [googleConnected, setGoogleConnected] = useState(hasGoogleToken());
   const [syncingId, setSyncingId] = useState<string | null>(null);
   const [syncStatus, setSyncStatus] = useState<string | null>(null);
+
+  // Google Feed States
+  const [googleEvents, setGoogleEvents] = useState<GoogleCalendarEvent[]>([]);
+  const [googleTasks, setGoogleTasks] = useState<GoogleTaskItem[]>([]);
+  const [googleFeedPeriod, setGoogleFeedPeriod] = useState<"Today" | "7 Days" | "30 Days">("7 Days");
+  const [fetchingGoogleFeed, setFetchingGoogleFeed] = useState(false);
+
+  const getPeriodDates = (period: string) => {
+    const start = new Date();
+    start.setHours(0, 0, 0, 0);
+    const end = new Date();
+    end.setHours(23, 59, 59, 999);
+
+    if (period === "Today") {
+      // Keep end as today
+    } else if (period === "7 Days") {
+      end.setDate(end.getDate() + 7);
+    } else if (period === "30 Days") {
+      end.setDate(end.getDate() + 30);
+    }
+
+    return {
+      timeMin: start.toISOString(),
+      timeMax: end.toISOString()
+    };
+  };
+
+  const loadGoogleFeed = async () => {
+    if (!googleConnected) return;
+    try {
+      setFetchingGoogleFeed(true);
+      const { timeMin, timeMax } = getPeriodDates(googleFeedPeriod);
+      const [events, gTasks] = await Promise.all([
+        fetchGoogleCalendarEvents(timeMin, timeMax),
+        fetchGoogleTasks()
+      ]);
+      setGoogleEvents(events);
+
+      const endLimit = new Date(timeMax).getTime();
+      const filteredTasks = gTasks.filter(t => {
+        if (!t.due) return true;
+        return new Date(t.due).getTime() <= endLimit;
+      });
+      setGoogleTasks(filteredTasks);
+    } catch (err) {
+      console.error("Failed to load Google Feed:", err);
+    } finally {
+      setFetchingGoogleFeed(false);
+    }
+  };
+
+  useEffect(() => {
+    if (googleConnected) {
+      loadGoogleFeed();
+    } else {
+      setGoogleEvents([]);
+      setGoogleTasks([]);
+    }
+  }, [googleConnected, googleFeedPeriod]);
 
   const sortedTasks = useMemo(
     () =>
@@ -213,10 +281,10 @@ export default function PlannerPage() {
               </CardHeader>
               <CardContent>
                 {activeTasks.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-12 text-slate-400 text-sm">
-                    <ListTodo className="h-9 w-9 text-slate-300 mb-3" />
-                    <p className="font-medium">No active tasks</p>
-                    <p className="text-xs mt-1">Add a task to start planning your day.</p>
+                  <div className="flex flex-col items-center justify-center py-8 text-slate-400 text-sm text-center">
+                    <img src="/images/empty_tasks.png" alt="No tasks" className="w-48 h-auto object-contain mb-4 rounded-xl opacity-90 mix-blend-multiply" />
+                    <p className="font-semibold text-slate-700">No active tasks</p>
+                    <p className="text-xs text-slate-400 max-w-[200px] mt-1">Add a task to start planning your day.</p>
                   </div>
                 ) : (
                   <div className="divide-y divide-slate-50">
@@ -261,6 +329,126 @@ export default function PlannerPage() {
                 )}
               </CardContent>
             </Card>
+
+            {googleConnected && (
+              <Card className="bg-white border-slate-100 shadow-sm rounded-2xl">
+                <CardHeader className="pb-3 border-b border-slate-50 flex flex-row items-center justify-between flex-wrap gap-2">
+                  <div>
+                    <CardTitle className="text-base font-bold text-slate-800 flex items-center gap-2">
+                      <span className="h-2 w-2 rounded-full bg-emerald-500 animate-ping" />
+                      Google Workspace Feed
+                    </CardTitle>
+                    <CardDescription className="text-xs text-slate-500 font-medium">Upcoming agenda and task lists</CardDescription>
+                  </div>
+                  <div className="flex gap-1.5 bg-slate-100 p-1 rounded-xl">
+                    {(["Today", "7 Days", "30 Days"] as const).map((period) => (
+                      <button
+                        key={period}
+                        type="button"
+                        onClick={() => setGoogleFeedPeriod(period)}
+                        className={cn(
+                          "px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer",
+                          googleFeedPeriod === period
+                            ? "bg-white text-slate-800 shadow-sm"
+                            : "text-slate-500 hover:text-slate-800"
+                        )}
+                      >
+                        {period}
+                      </button>
+                    ))}
+                  </div>
+                </CardHeader>
+                <CardContent className="pt-4">
+                  {fetchingGoogleFeed ? (
+                    <div className="flex items-center justify-center py-12 text-slate-500 text-sm gap-2">
+                      <Loader2 className="h-5 w-5 animate-spin text-sky-500" />
+                      <span>Loading Google feed...</span>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      {/* Calendar Section */}
+                      <div className="space-y-3">
+                        <h3 className="text-xs font-black uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+                          <Calendar className="h-3.5 w-3.5 text-sky-500" />
+                          Calendar Events ({googleEvents.length})
+                        </h3>
+                        {googleEvents.length === 0 ? (
+                          <p className="text-xs text-slate-400 py-3 italic">No events scheduled for this period.</p>
+                        ) : (
+                          <div className="space-y-2.5 max-h-[300px] overflow-y-auto pr-1">
+                            {googleEvents.map((event) => {
+                              const start = event.start.dateTime
+                                ? new Date(event.start.dateTime).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+                                : "All Day";
+                              const date = event.start.dateTime
+                                ? new Date(event.start.dateTime).toLocaleDateString([], { month: "short", day: "numeric" })
+                                : event.start.date || "";
+                              return (
+                                <div key={event.id} className="rounded-xl border border-slate-100 bg-slate-50/50 p-2.5 hover:border-slate-200 transition-colors">
+                                  <p className="font-semibold text-xs text-slate-800 line-clamp-1">{event.summary || "Untitled Event"}</p>
+                                  <p className="text-[10px] text-slate-500 mt-1 flex items-center gap-1.5">
+                                    <span className="font-medium text-sky-600 bg-sky-50 px-1.5 py-0.5 rounded border border-sky-100">{date}</span>
+                                    <span>{start}</span>
+                                  </p>
+                                  {event.description && (
+                                    <p className="text-[10px] text-slate-400 mt-1 line-clamp-1 italic">{event.description}</p>
+                                  )}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Tasks Section */}
+                      <div className="space-y-3">
+                        <h3 className="text-xs font-black uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+                          <CheckSquare className="h-3.5 w-3.5 text-sky-500" />
+                          Google Tasks ({googleTasks.length})
+                        </h3>
+                        {googleTasks.length === 0 ? (
+                          <p className="text-xs text-slate-400 py-3 italic">No tasks found.</p>
+                        ) : (
+                          <div className="space-y-2.5 max-h-[300px] overflow-y-auto pr-1">
+                            {googleTasks.map((task) => {
+                              const dueDate = task.due
+                                ? new Date(task.due).toLocaleDateString([], { month: "short", day: "numeric" })
+                                : "No due date";
+                              return (
+                                <div key={task.id} className="rounded-xl border border-slate-100 bg-slate-50/50 p-2.5 hover:border-slate-200 transition-colors flex items-start justify-between gap-3">
+                                  <div className="min-w-0">
+                                    <p className={cn(
+                                      "font-semibold text-xs text-slate-800 line-clamp-1",
+                                      task.status === "completed" && "line-through text-slate-400"
+                                    )}>
+                                      {task.title || "Untitled Task"}
+                                    </p>
+                                    <p className="text-[10px] text-slate-500 mt-1">
+                                      <span className="font-medium text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-100">{dueDate}</span>
+                                    </p>
+                                    {task.notes && (
+                                      <p className="text-[10px] text-slate-400 mt-1 line-clamp-1">{task.notes}</p>
+                                    )}
+                                  </div>
+                                  <span className={cn(
+                                    "text-[9px] font-black uppercase px-1.5 py-0.5 rounded border flex-shrink-0",
+                                    task.status === "completed"
+                                      ? "text-emerald-600 bg-emerald-50 border-emerald-200"
+                                      : "text-amber-600 bg-amber-50 border-amber-200"
+                                  )}>
+                                    {task.status === "completed" ? "Done" : "Todo"}
+                                  </span>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            )}
 
             {doneTasks.length > 0 && (
               <Card className="bg-white border-slate-100 shadow-sm rounded-2xl">
