@@ -211,7 +211,7 @@ export default function CheckInPage() {
                   <span>Terrible</span><span>Harvey 🔥</span>
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <SliderField label="Energy Level" value={energyLevel} min={1} max={10} onChange={setEnergyLevel} />
                 <SliderField label="Stress Level" value={stressLevel} min={1} max={10} onChange={setStressLevel} />
               </div>
@@ -260,12 +260,12 @@ export default function CheckInPage() {
               </div>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <SliderField label="Productivity" value={productivityLevel} min={1} max={10} onChange={setProductivityLevel} />
                 <SliderField label="Focus Level" value={focusLevel} min={1} max={10} onChange={setFocusLevel} />
               </div>
               <SliderField label="Social Interaction" value={socialInteraction} min={1} max={10} onChange={setSocialInteraction} />
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-1.5">
                   <Label className="text-sm font-semibold text-slate-700">Study Hours</Label>
                   <Input type="number" step="0.1" min="0" value={studyHours}
@@ -306,7 +306,7 @@ export default function CheckInPage() {
               </div>
 
               {workoutDone && (
-                <div className="grid grid-cols-2 gap-4 border-t border-slate-100 pt-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 border-t border-slate-100 pt-4">
                   <div className="space-y-1.5">
                     <Label className="text-sm font-semibold text-slate-700">Duration (min)</Label>
                     <Input type="number" value={exerciseDuration}
@@ -330,7 +330,7 @@ export default function CheckInPage() {
                 <Switch checked={junkFood} onCheckedChange={setJunkFood} className="data-[state=checked]:bg-rose-500" />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-1.5">
                   <Label className="text-sm font-semibold text-slate-700">Pages Read</Label>
                   <Input type="number" value={pagesRead}

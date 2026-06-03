@@ -270,11 +270,7 @@ export default function DashboardPage() {
 
                 <div className="border-t border-slate-100 pt-3 mt-1">
                   <p className="text-[11px] text-slate-400 leading-relaxed">
-                    Customize targets in the{" "}
-                    <Link href="/settings" className="text-teal-600 font-medium hover:underline">
-                      Settings
-                    </Link>{" "}
-                    page.
+                    Track daily progress against your personal benchmarks.
                   </p>
                 </div>
               </CardContent>
