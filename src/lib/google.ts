@@ -185,3 +185,34 @@ export async function syncTaskToGoogle(task: LifeTask) {
     google_synced_at: new Date().toISOString(),
   };
 }
+
+export interface GoogleCalendarEvent {
+  id: string;
+  summary: string;
+  description?: string;
+  start: { dateTime?: string; date?: string };
+  end: { dateTime?: string; date?: string };
+}
+
+export interface GoogleTaskItem {
+  id: string;
+  title: string;
+  notes?: string;
+  due?: string;
+  status: string;
+}
+
+export async function fetchGoogleCalendarEvents(timeMin: string, timeMax: string): Promise<GoogleCalendarEvent[]> {
+  const url = `https://www.googleapis.com/calendar/v3/calendars/primary/events?timeMin=${encodeURIComponent(timeMin)}&timeMax=${encodeURIComponent(timeMax)}&singleEvents=true&orderBy=startTime`;
+  const res = await googleFetch<{ items?: GoogleCalendarEvent[] }>(url);
+  return res.items || [];
+}
+
+export async function fetchGoogleTasks(): Promise<GoogleTaskItem[]> {
+  const taskListId = await getDefaultTaskListId();
+  if (!taskListId) return [];
+  const url = `https://tasks.googleapis.com/tasks/v1/lists/${encodeURIComponent(taskListId)}/tasks`;
+  const res = await googleFetch<{ items?: GoogleTaskItem[] }>(url);
+  return res.items || [];
+}
+

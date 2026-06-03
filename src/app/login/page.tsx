@@ -63,18 +63,25 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen bg-slate-50 flex font-sans">
-      <div className="hidden lg:flex lg:w-1/2 flex-col items-center justify-center px-16 bg-teal-600">
-        <div className="text-center text-white space-y-10 max-w-md">
+      <div className="relative hidden lg:flex lg:w-1/2 flex-col items-center justify-center px-16 overflow-hidden">
+        {/* Background Image with modern filters */}
+        <div className="absolute inset-0 z-0">
+          <img src="/images/login_banner.png" alt="Productivity banner" className="w-full h-full object-cover" />
+          <div className="absolute inset-0 bg-teal-900/85 mix-blend-multiply" />
+          <div className="absolute inset-0 bg-gradient-to-b from-teal-950/80 via-transparent to-teal-950/90" />
+        </div>
+
+        <div className="relative z-10 text-center text-white space-y-10 max-w-md">
           <div className="flex items-center justify-center gap-3">
-            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white/20 shadow-lg">
-              <Flame className="h-8 w-8 fill-current text-white" />
+            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white/10 shadow-lg backdrop-blur-md border border-white/20">
+              <Flame className="h-8 w-8 fill-current text-white animate-pulse" />
             </div>
             <span className="text-4xl font-black tracking-tight">LifeOS</span>
           </div>
 
           <div className="space-y-3">
             <h1 className="text-3xl font-bold leading-tight">Private Life Analytics</h1>
-            <p className="text-teal-50 text-base leading-relaxed">
+            <p className="text-teal-50/90 text-sm leading-relaxed">
               Your LifeOS data is securely stored in Supabase. Google receives only the tasks and events you explicitly sync.
             </p>
           </div>
@@ -83,17 +90,17 @@ export default function LoginPage() {
             {features.map((feature) => {
               const Icon = feature.icon;
               return (
-                <div key={feature.label} className="flex items-center gap-3 bg-white/10 rounded-xl px-4 py-3 text-left">
-                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-white/20 flex-shrink-0">
+                <div key={feature.label} className="flex items-center gap-3 bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl px-4 py-3 text-left hover:bg-white/10 transition-colors duration-200">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-white/10 flex-shrink-0">
                     <Icon className="h-4 w-4 text-white" />
                   </div>
-                  <span className="text-sm text-white/90 font-medium">{feature.label}</span>
+                  <span className="text-xs text-white/90 font-medium">{feature.label}</span>
                 </div>
               );
             })}
           </div>
 
-          <p className="text-teal-100/80 text-xs">Supabase vault · User-consented Google sync · Secure API routes</p>
+          <p className="text-teal-100/60 text-xs">Supabase vault · User-consented Google sync · Secure API routes</p>
         </div>
       </div>
 

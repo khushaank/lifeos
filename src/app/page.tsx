@@ -75,6 +75,27 @@ export default function DashboardPage() {
           </div>
         </div>
 
+        {/* Dashboard Cover Banner Card */}
+        <div className="relative overflow-hidden rounded-3xl border border-slate-100 bg-slate-900 text-white shadow-md">
+          {/* Cover image overlay */}
+          <div className="absolute inset-0 opacity-45 mix-blend-overlay">
+            <img src="/images/dashboard_cover.png" alt="Dashboard cover" className="w-full h-full object-cover" />
+          </div>
+          {/* Gradient overlay */}
+          <div className="absolute inset-0 bg-gradient-to-r from-slate-950 via-slate-900/80 to-transparent" />
+          
+          <div className="relative z-10 px-8 py-10 max-w-xl space-y-3">
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-teal-500/15 border border-teal-500/30 px-3 py-1 text-xs font-bold text-teal-400">
+              <Activity className="h-3 w-3" />
+              Overview Garden
+            </span>
+            <h2 className="text-3xl font-black tracking-tight leading-tight">Empower your habits, track your progress.</h2>
+            <p className="text-slate-300 text-sm leading-relaxed">
+              Analyze sleeping behaviors, study hours, calendar blocks, and daily metrics in your private, secure environment.
+            </p>
+          </div>
+        </div>
+
         {/* Welcome Banner if no entries */}
         {entries.length === 0 && (
           <Card className="border-teal-200 bg-gradient-to-r from-teal-50 to-emerald-50 shadow-sm">
