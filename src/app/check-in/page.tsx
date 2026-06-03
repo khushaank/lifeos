@@ -11,13 +11,13 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Navigation } from "@/components/navigation";
-import { Save, Smile, Moon, Brain, Flame, Trash2, Activity, BookOpen, Clock } from "lucide-react";
+import { Save, Smile, Moon, Brain, Flame, Trash2, Activity } from "lucide-react";
 
 const MOOD_LABELS = ["Terrible", "Bad", "Below Average", "Average", "Good", "Great", "Excellent", "Harvey"];
 const MOOD_COLORS = ["text-rose-600", "text-orange-500", "text-amber-500", "text-yellow-500", "text-lime-500", "text-green-500", "text-emerald-500", "text-teal-600"];
 const MOOD_EMOJIS = ["😞", "😕", "😐", "🙂", "😊", "😄", "🌟", "🔥"];
 
-function SliderField({ label, value, min, max, onChange, color = "teal" }: { label: string; value: number; min: number; max: number; onChange: (v: number) => void; color?: string; }) {
+function SliderField({ label, value, min, max, onChange }: { label: string; value: number; min: number; max: number; onChange: (v: number) => void; }) {
   const pct = ((value - min) / (max - min)) * 100;
   return (
     <div className="space-y-2">
@@ -347,7 +347,7 @@ export default function CheckInPage() {
             </CardHeader>
             <CardContent className="space-y-3">
               <div className="space-y-1.5">
-                <Label className="text-sm font-semibold text-slate-700">✅ Today's Wins</Label>
+                <Label className="text-sm font-semibold text-slate-700">Todays Wins</Label>
                 <Textarea value={wins} onChange={(e) => setWins(e.target.value)}
                   placeholder="What went well today..."
                   className="bg-slate-50 border-slate-200 text-slate-800 resize-none h-20 placeholder:text-slate-400" />

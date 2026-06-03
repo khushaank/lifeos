@@ -7,11 +7,14 @@ import { TrendCharts } from "@/components/trend-charts";
 import { Navigation } from "@/components/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { PlusCircle, Calendar, RefreshCw, ChevronRight, Activity, BookOpen, Clock, Flame } from "lucide-react";
+import { PlusCircle, Calendar, RefreshCw, ChevronRight, Activity, BookOpen, Clock, Flame, ListTodo } from "lucide-react";
 import Link from "next/link";
 
 export default function DashboardPage() {
   const entries = useLifeStore((state) => state.entries);
+  const tasks = useLifeStore((state) => state.tasks);
+  const goals = useLifeStore((state) => state.goals);
+  const updateTask = useLifeStore((state) => state.updateTask);
   const fetchEntries = useLifeStore((state) => state.fetchEntries);
   const isSyncing = useLifeStore((state) => state.isSyncing);
 
@@ -20,6 +23,10 @@ export default function DashboardPage() {
   }, [fetchEntries]);
 
   const recentEntries = entries.slice(0, 5);
+  const upcomingTasks = tasks
+    .filter((task) => task.status !== "Done")
+    .sort((a, b) => `${a.due_date}${a.due_time || ""}`.localeCompare(`${b.due_date}${b.due_time || ""}`))
+    .slice(0, 4);
   const todayStr = new Date().toISOString().split("T")[0];
   const loggedToday = entries.some((e) => e.date === todayStr);
 
@@ -71,7 +78,7 @@ export default function DashboardPage() {
               <div className="text-center sm:text-left flex-1">
                 <h2 className="text-lg font-bold text-teal-800">Welcome to LifeOS! 👋</h2>
                 <p className="text-sm text-teal-700 mt-1">
-                  Start by logging your first daily check-in, or generate 30 days of demo data in Settings to explore your analytics dashboard.
+                  Start by logging your first daily check-in or adding private tasks in Planner.
                 </p>
               </div>
               <div className="flex gap-3">
@@ -80,9 +87,9 @@ export default function DashboardPage() {
                     Start Check-in
                   </Button>
                 </Link>
-                <Link href="/settings">
+                <Link href="/planner">
                   <Button variant="outline" className="border-teal-300 text-teal-700 hover:bg-teal-50 cursor-pointer">
-                    Generate Demo
+                    Open Planner
                   </Button>
                 </Link>
               </div>
@@ -187,21 +194,16 @@ export default function DashboardPage() {
               <CardDescription className="text-slate-500 text-xs">Performance goals summary</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              {[
-                { label: "Sleep Duration", target: "8.0 hrs", color: "bg-sky-500", width: "93%" },
-                { label: "Water Intake", target: "3,000 ml", color: "bg-teal-500", width: "66%" },
-                { label: "Weekly Workouts", target: "4 / 5 days", color: "bg-emerald-500", width: "80%" },
-                { label: "Study Goal", target: "2 hrs / day", color: "bg-violet-500", width: "55%" },
-              ].map((goal) => (
-                <div key={goal.label} className="space-y-1.5">
+              {goals.map((goal) => (
+                <div key={goal.id} className="space-y-1.5">
                   <div className="flex justify-between text-xs font-medium">
-                    <span className="text-slate-600">{goal.label}</span>
+                    <span className="text-slate-600">{goal.title}</span>
                     <span className="text-slate-500">{goal.target}</span>
                   </div>
                   <div className="w-full bg-slate-100 rounded-full h-1.5">
                     <div
                       className={`${goal.color} h-1.5 rounded-full transition-all duration-700`}
-                      style={{ width: goal.width }}
+                      style={{ width: `${Math.max(0, Math.min(100, goal.progress))}%` }}
                     />
                   </div>
                 </div>
@@ -219,6 +221,46 @@ export default function DashboardPage() {
             </CardContent>
           </Card>
         </div>
+
+        <Card className="bg-white border-slate-100 shadow-sm rounded-2xl">
+          <CardHeader className="flex flex-row items-center justify-between pb-3">
+            <div>
+              <CardTitle className="text-base font-bold text-slate-800">Upcoming Plan</CardTitle>
+              <CardDescription className="text-slate-500 text-xs">Open tasks from the Planner</CardDescription>
+            </div>
+            <Link href="/planner" className="text-xs text-teal-600 hover:text-teal-700 flex items-center font-semibold">
+              Planner <ChevronRight className="h-3 w-3 ml-0.5" />
+            </Link>
+          </CardHeader>
+          <CardContent>
+            {upcomingTasks.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-8 text-slate-400 text-sm">
+                <ListTodo className="h-8 w-8 text-slate-300 mb-3" />
+                <p className="font-medium">No active tasks</p>
+                <p className="text-xs text-slate-400 mt-1">Add tasks in Planner to see your day here.</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 gap-2 md:grid-cols-2 xl:grid-cols-4">
+                {upcomingTasks.map((task) => (
+                  <button
+                    key={task.id}
+                    onClick={() => updateTask(task.id, { status: "Done" })}
+                    className="rounded-xl border border-slate-100 bg-slate-50 px-4 py-3 text-left hover:border-emerald-200 hover:bg-emerald-50 transition-colors cursor-pointer"
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="text-sm font-bold text-slate-800 truncate">{task.title}</p>
+                      <span className="rounded-full bg-white px-2 py-0.5 text-[10px] font-bold text-slate-500">{task.priority}</span>
+                    </div>
+                    <p className="mt-1 text-xs text-slate-500">
+                      {task.due_date} {task.due_time || ""}
+                    </p>
+                    <p className="mt-2 text-[11px] font-semibold text-emerald-600">Click to complete</p>
+                  </button>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
       </main>
     </div>
   );

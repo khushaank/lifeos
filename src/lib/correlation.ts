@@ -39,16 +39,17 @@ export function calculatePearson(x: number[], y: number[]): number {
  * Ideal for measuring impact of Workouts or Junk Food inputs.
  */
 export function calculateBinaryImpact(
-  data: any[],
+  data: unknown[],
   booleanField: string,
   targetField: string
 ): { yesMean: number; noMean: number; percentChange: number } {
-  const yesGroup = data.filter((d) => d[booleanField] === true || d[booleanField] === "Yes" || d[booleanField] === 1);
-  const noGroup = data.filter((d) => d[booleanField] === false || d[booleanField] === "No" || d[booleanField] === 0 || d[booleanField] === null);
+  const read = (item: unknown, field: string) => (item as Record<string, unknown>)[field];
+  const yesGroup = data.filter((d) => read(d, booleanField) === true || read(d, booleanField) === "Yes" || read(d, booleanField) === 1);
+  const noGroup = data.filter((d) => read(d, booleanField) === false || read(d, booleanField) === "No" || read(d, booleanField) === 0 || read(d, booleanField) === null);
 
-  const getAverage = (arr: any[], field: string) => {
+  const getAverage = (arr: unknown[], field: string) => {
     if (arr.length === 0) return 0;
-    const sum = arr.reduce((acc, curr) => acc + (parseFloat(curr[field]) || 0), 0);
+    const sum = arr.reduce<number>((acc, curr) => acc + (Number(read(curr, field)) || 0), 0);
     return sum / arr.length;
   };
 

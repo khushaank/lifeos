@@ -125,7 +125,7 @@ export function calculateCheckInStreak(checkIns: { date: string }[]): { current:
   
   if (hasRecentCheckIn) {
     let activeStreak = 0;
-    let expectedDate = new Date(dateObjects[0]);
+    const expectedDate = new Date(dateObjects[0]);
     
     for (let i = 0; i < dateObjects.length; i++) {
       const diff = expectedDate.getTime() - dateObjects[i].getTime();
@@ -202,7 +202,7 @@ export function calculateHabitStreak(
 
   if (isActive) {
     let activeStreak = 0;
-    let expectedDate = new Date(dates[0]);
+    const expectedDate = new Date(dates[0]);
     for (let i = 0; i < dates.length; i++) {
       const diff = expectedDate.getTime() - dates[i].getTime();
       const diffDays = Math.round(diff / (1000 * 60 * 60 * 24));

@@ -65,7 +65,7 @@ export async function signSessionToken(payload: string, secret: string): Promise
 export async function verifySessionToken(token: string, secret: string): Promise<boolean> {
   const parts = token.split(".");
   if (parts.length !== 2) return false;
-  const [payload, signature] = parts;
+  const [payload] = parts;
   const expectedToken = await signSessionToken(payload, secret);
   return token === expectedToken;
 }

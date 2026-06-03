@@ -41,8 +41,12 @@ export function CorrelationDashboard({ entries }: CorrelationDashboardProps) {
     );
   }
 
-  const getArray = (key: keyof LogEntry): number[] =>
-    entries.map((e) => parseFloat(e[key] as any) || 0);
+  const getNumber = (entry: LogEntry, key: keyof LogEntry) => {
+    const value = entry[key];
+    return typeof value === "number" ? value : Number(value) || 0;
+  };
+
+  const getArray = (key: keyof LogEntry): number[] => entries.map((entry) => getNumber(entry, key));
 
   const sleepArr = getArray("sleep_hours");
   const moodArr = getArray("mood_score");
@@ -62,8 +66,8 @@ export function CorrelationDashboard({ entries }: CorrelationDashboardProps) {
   const workoutEnergyImpact = calculateBinaryImpact(entries, "workout_done", "energy_level");
 
   const scatterData = entries.map((e) => ({
-    x: parseFloat(e[selectedPair.xKey] as any) || 0,
-    y: parseFloat(e[selectedPair.yKey] as any) || 0,
+    x: getNumber(e, selectedPair.xKey),
+    y: getNumber(e, selectedPair.yKey),
   }));
 
   const getCoeffLabel = (r: number) => {
@@ -133,7 +137,7 @@ export function CorrelationDashboard({ entries }: CorrelationDashboardProps) {
               {selectedPair.xName} vs {selectedPair.yName}
             </CardTitle>
             <CardDescription className="text-xs text-slate-400">
-              Each dot represents one day's log entry
+              Each dot represents one day&apos;s log entry
             </CardDescription>
           </CardHeader>
           <CardContent>

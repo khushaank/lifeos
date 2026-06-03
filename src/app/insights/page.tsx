@@ -4,14 +4,14 @@ import { useLifeStore } from "@/store/useLifeStore";
 import { CorrelationDashboard } from "@/components/correlation-dashboard";
 import { Navigation } from "@/components/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Brain, TrendingUp, Sparkles, ShieldCheck, AlertTriangle, Zap, Info } from "lucide-react";
+import { Brain, TrendingUp, Sparkles, ShieldCheck, AlertTriangle, Zap, Info, type LucideIcon } from "lucide-react";
 import { calculatePearson } from "@/lib/correlation";
 
 interface InsightCard {
   title: string;
   desc: string;
   type: "positive" | "caution" | "burnout" | "neutral";
-  icon: any;
+  icon: LucideIcon;
 }
 
 export default function InsightsPage() {
@@ -23,7 +23,7 @@ export default function InsightsPage() {
     if (entries.length < 5) {
       return [{
         title: "Not Enough Data Yet",
-        desc: "Log at least 5 daily check-ins to unlock the AI heuristic engine. Go to Settings to generate 30 days of demo data to explore insights instantly.",
+        desc: "Log at least 5 daily check-ins to unlock the AI heuristic engine. Your insights are generated locally from your private entries.",
         type: "neutral",
         icon: Info,
       }];
@@ -165,6 +165,7 @@ export default function InsightsPage() {
                   <CardHeader className="pb-2 pt-4 px-5">
                     <div className="flex items-start justify-between gap-3">
                       <CardTitle className="text-sm font-bold text-slate-800 leading-tight">{insight.title}</CardTitle>
+                      <Icon className="h-4 w-4 text-slate-400 flex-shrink-0" />
                       <span className={`flex-shrink-0 text-[10px] font-semibold px-2 py-1 rounded-full ${style.badge} ${style.badgeText} whitespace-nowrap`}>
                         {badgeLabels[insight.type]}
                       </span>

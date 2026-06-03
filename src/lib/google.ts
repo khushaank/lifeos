@@ -1,0 +1,187 @@
+import type { LifeTask } from "@/store/useLifeStore";
+
+const GOOGLE_SCRIPT_SRC = "https://accounts.google.com/gsi/client";
+const GOOGLE_SCOPES = "https://www.googleapis.com/auth/calendar.events https://www.googleapis.com/auth/tasks";
+
+type TokenResponse = {
+  access_token?: string;
+  error?: string;
+};
+
+type TokenClient = {
+  requestAccessToken: (options?: { prompt?: string }) => void;
+};
+
+declare global {
+  interface Window {
+    google?: {
+      accounts: {
+        oauth2: {
+          initTokenClient: (config: {
+            client_id: string;
+            scope: string;
+            callback: (response: TokenResponse) => void;
+          }) => TokenClient;
+          revoke: (token: string, done: () => void) => void;
+        };
+      };
+    };
+  }
+}
+
+let accessToken: string | null = null;
+
+export function getStoredGoogleClientId() {
+  if (typeof window === "undefined") return process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || "";
+  return localStorage.getItem("lifeos-google-client-id") || process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || "";
+}
+
+export function saveGoogleClientId(clientId: string) {
+  localStorage.setItem("lifeos-google-client-id", clientId.trim());
+}
+
+export function hasGoogleToken() {
+  return Boolean(accessToken);
+}
+
+function loadGoogleScript() {
+  return new Promise<void>((resolve, reject) => {
+    if (window.google?.accounts?.oauth2) {
+      resolve();
+      return;
+    }
+
+    const existing = document.querySelector<HTMLScriptElement>(`script[src="${GOOGLE_SCRIPT_SRC}"]`);
+    if (existing) {
+      existing.addEventListener("load", () => resolve(), { once: true });
+      existing.addEventListener("error", () => reject(new Error("Google Identity script failed to load.")), { once: true });
+      return;
+    }
+
+    const script = document.createElement("script");
+    script.src = GOOGLE_SCRIPT_SRC;
+    script.async = true;
+    script.defer = true;
+    script.onload = () => resolve();
+    script.onerror = () => reject(new Error("Google Identity script failed to load."));
+    document.head.appendChild(script);
+  });
+}
+
+export async function connectGoogle(clientId = getStoredGoogleClientId()) {
+  if (!clientId) {
+    throw new Error("Add a Google OAuth Client ID in Settings first.");
+  }
+
+  await loadGoogleScript();
+
+  return new Promise<string>((resolve, reject) => {
+    const client = window.google?.accounts.oauth2.initTokenClient({
+      client_id: clientId,
+      scope: GOOGLE_SCOPES,
+      callback: (response) => {
+        if (response.error || !response.access_token) {
+          reject(new Error(response.error || "Google authorization failed."));
+          return;
+        }
+        accessToken = response.access_token;
+        resolve(response.access_token);
+      },
+    });
+
+    client?.requestAccessToken({ prompt: "consent" });
+  });
+}
+
+export function disconnectGoogle() {
+  if (!accessToken || !window.google?.accounts?.oauth2) {
+    accessToken = null;
+    return Promise.resolve();
+  }
+
+  return new Promise<void>((resolve) => {
+    window.google?.accounts.oauth2.revoke(accessToken as string, () => {
+      accessToken = null;
+      resolve();
+    });
+  });
+}
+
+async function googleFetch<T>(url: string, init: RequestInit = {}) {
+  if (!accessToken) {
+    await connectGoogle();
+  }
+
+  const response = await fetch(url, {
+    ...init,
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${accessToken}`,
+      ...init.headers,
+    },
+  });
+
+  if (response.status === 401) {
+    accessToken = null;
+    throw new Error("Google session expired. Connect again and retry.");
+  }
+
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(text || `Google request failed with ${response.status}.`);
+  }
+
+  return (await response.json()) as T;
+}
+
+const toDateTime = (task: LifeTask) => {
+  const date = task.due_date;
+  const time = task.due_time || "09:00";
+  const start = new Date(`${date}T${time}:00`);
+  const end = new Date(start);
+  end.setMinutes(end.getMinutes() + 45);
+  return { start, end };
+};
+
+export async function createGoogleCalendarEvent(task: LifeTask) {
+  const { start, end } = toDateTime(task);
+  return googleFetch<{ id: string; htmlLink?: string }>("https://www.googleapis.com/calendar/v3/calendars/primary/events", {
+    method: "POST",
+    body: JSON.stringify({
+      summary: task.title,
+      description: [task.notes, `Priority: ${task.priority}`, `Area: ${task.area}`, "Created from LifeOS"].filter(Boolean).join("\n"),
+      start: { dateTime: start.toISOString() },
+      end: { dateTime: end.toISOString() },
+    }),
+  });
+}
+
+async function getDefaultTaskListId() {
+  const lists = await googleFetch<{ items?: Array<{ id: string; title: string }> }>("https://tasks.googleapis.com/tasks/v1/users/@me/lists");
+  return lists.items?.[0]?.id;
+}
+
+export async function createGoogleTask(task: LifeTask) {
+  const taskListId = await getDefaultTaskListId();
+  if (!taskListId) {
+    throw new Error("No Google Tasks list found for this account.");
+  }
+
+  return googleFetch<{ id: string; webViewLink?: string }>(`https://tasks.googleapis.com/tasks/v1/lists/${encodeURIComponent(taskListId)}/tasks`, {
+    method: "POST",
+    body: JSON.stringify({
+      title: task.title,
+      notes: [task.notes, `Priority: ${task.priority}`, `Area: ${task.area}`, "Created from LifeOS"].filter(Boolean).join("\n"),
+      due: new Date(`${task.due_date}T00:00:00`).toISOString(),
+    }),
+  });
+}
+
+export async function syncTaskToGoogle(task: LifeTask) {
+  const [event, googleTask] = await Promise.all([createGoogleCalendarEvent(task), createGoogleTask(task)]);
+  return {
+    google_event_id: event.id,
+    google_task_id: googleTask.id,
+    google_synced_at: new Date().toISOString(),
+  };
+}

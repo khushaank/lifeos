@@ -1,189 +1,201 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useLifeStore } from "@/store/useLifeStore";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Label } from "@/components/ui/label";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Navigation } from "@/components/navigation";
-import { KeyRound, Sparkles, Database, Trash2, CheckCircle2, ShieldAlert, Info } from "lucide-react";
+import { CalendarDays, Database, Download, KeyRound, ShieldAlert, Trash2, Upload } from "lucide-react";
+import { downloadTextFile } from "@/lib/integrations";
+import { getStoredGoogleClientId, saveGoogleClientId } from "@/lib/google";
 
 export default function SettingsPage() {
-  const generateMockData = useLifeStore((state) => state.generateMockData);
   const clearAllData = useLifeStore((state) => state.clearAllData);
   const entries = useLifeStore((state) => state.entries);
+  const tasks = useLifeStore((state) => state.tasks);
+  const goals = useLifeStore((state) => state.goals);
+  const updateGoal = useLifeStore((state) => state.updateGoal);
+  const importData = useLifeStore((state) => state.importData);
+  const exportData = useLifeStore((state) => state.exportData);
 
-  const [currentPassword, setCurrentPassword] = useState("");
-  const [newPassword, setNewPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-  const [passLoading, setPassLoading] = useState(false);
-  const [passStatus, setPassStatus] = useState<{ type: "success" | "error"; msg: string } | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const [newKey, setNewKey] = useState("");
+  const [googleClientId, setGoogleClientId] = useState(getStoredGoogleClientId());
+  const [status, setStatus] = useState<string | null>(null);
 
-  const handleUpdatePassword = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setPassStatus(null);
-
-    if (newPassword !== confirmPassword) {
-      setPassStatus({ type: "error", msg: "New passwords do not match." });
+  const handleUpdateKey = (event: React.FormEvent) => {
+    event.preventDefault();
+    if (newKey.length < 6) {
+      setStatus("Access key must be at least 6 characters.");
       return;
     }
-    if (newPassword.length < 6) {
-      setPassStatus({ type: "error", msg: "Password must be at least 6 characters." });
-      return;
-    }
-
-    setPassLoading(true);
-    try {
-      const res = await fetch("/api/auth/update-password", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ currentPassword, newPassword }),
-      });
-      const data = await res.json();
-      if (res.ok && data.success) {
-        setPassStatus({ type: "success", msg: "Password updated successfully!" });
-        setCurrentPassword(""); setNewPassword(""); setConfirmPassword("");
-      } else {
-        setPassStatus({ type: "error", msg: data.error || "Password update failed." });
-      }
-    } catch {
-      setPassStatus({ type: "error", msg: "Network error. Please try again." });
-    } finally {
-      setPassLoading(false);
-    }
+    localStorage.setItem("lifeos-access-key", newKey);
+    setNewKey("");
+    setStatus("Access key updated for this browser.");
   };
 
-  const handleGenerateMock = () => {
-    if (confirm("This will generate 30 days of sample data. This may overwrite today's existing entry. Proceed?")) {
-      generateMockData();
+  const handleExport = () => {
+    downloadTextFile("lifeos-data.json", JSON.stringify(exportData(), null, 2), "application/json");
+  };
+
+  const handleImport = async (file: File | undefined) => {
+    if (!file) return;
+    try {
+      const text = await file.text();
+      importData(JSON.parse(text));
+      setStatus("Data imported successfully.");
+    } catch {
+      setStatus("Import failed. Choose a valid LifeOS JSON export.");
     }
   };
 
   const handleClear = () => {
-    if (confirm("This will permanently delete all locally cached check-in data. Are you sure?")) {
+    if (confirm("This will permanently delete all locally cached LifeOS data. Are you sure?")) {
       clearAllData();
     }
+  };
+
+  const handleSaveGoogle = (event: React.FormEvent) => {
+    event.preventDefault();
+    saveGoogleClientId(googleClientId);
+    setStatus("Google Client ID saved. Connect from Planner to sync tasks and events.");
   };
 
   return (
     <div className="min-h-screen bg-slate-50 font-sans md:pl-64 pb-20">
       <Navigation />
-      <main className="mx-auto max-w-3xl px-4 py-6 md:px-8 space-y-5">
-        {/* Header */}
+      <main className="mx-auto max-w-4xl px-4 py-6 md:px-8 space-y-5">
         <div className="bg-white rounded-2xl px-6 py-5 shadow-sm border border-slate-100">
           <h1 className="text-2xl font-bold text-slate-800">Settings</h1>
-          <p className="text-sm text-slate-500">Manage credentials, data, and system utilities</p>
+          <p className="text-sm text-slate-500">Manage local access, data portability, and targets</p>
         </div>
 
-        {/* Database Status */}
+        {status && <div className="rounded-xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-700">{status}</div>}
+
         <Card className="bg-white border-slate-100 shadow-sm rounded-2xl">
           <CardHeader className="flex flex-row items-center gap-3 pb-2">
             <div className="h-9 w-9 rounded-xl bg-emerald-50 ring-1 ring-emerald-200 flex items-center justify-center">
               <Database className="h-5 w-5 text-emerald-500" />
             </div>
             <div>
-              <CardTitle className="text-sm font-bold text-slate-800">Database & Sync Status</CardTitle>
-              <CardDescription className="text-xs text-slate-400">Local cache and Supabase connection info</CardDescription>
+              <CardTitle className="text-sm font-bold text-slate-800">Local Data</CardTitle>
+              <CardDescription className="text-xs text-slate-400">GitHub Pages compatible browser storage</CardDescription>
             </div>
           </CardHeader>
-          <CardContent className="space-y-3 pt-1">
-            <div className="flex items-center gap-2.5 bg-emerald-50 border border-emerald-200 rounded-xl px-4 py-3 text-sm text-emerald-700">
-              <CheckCircle2 className="h-4 w-4 flex-shrink-0" />
-              <span>Local cache active — <strong>{entries.length}</strong> entries stored in browser.</span>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+              {[
+                { label: "Entries", value: entries.length },
+                { label: "Tasks", value: tasks.length },
+                { label: "Goals", value: goals.length },
+                { label: "Storage", value: "Local" },
+              ].map((item) => (
+                <div key={item.label} className="rounded-xl bg-slate-50 border border-slate-100 px-3 py-2">
+                  <p className="text-xs text-slate-500">{item.label}</p>
+                  <p className="text-lg font-black text-slate-800">{item.value}</p>
+                </div>
+              ))}
             </div>
-            <div className="flex items-start gap-2.5 bg-blue-50 border border-blue-200 rounded-xl px-4 py-3 text-xs text-blue-700">
-              <Info className="h-3.5 w-3.5 mt-0.5 flex-shrink-0" />
-              <span>
-                Entries sync to Supabase automatically when you save check-ins. Offline saves are cached locally and stay available between sessions.
-              </span>
+
+            <div className="flex flex-wrap gap-2">
+              <Button onClick={handleExport} className="bg-emerald-500 hover:bg-emerald-600 text-white cursor-pointer">
+                <Download className="mr-2 h-4 w-4" />
+                Export JSON
+              </Button>
+              <Button onClick={() => fileInputRef.current?.click()} variant="outline" className="border-slate-200 text-slate-600 cursor-pointer">
+                <Upload className="mr-2 h-4 w-4" />
+                Import JSON
+              </Button>
+              <input ref={fileInputRef} type="file" accept="application/json,.json" className="hidden" onChange={(event) => handleImport(event.target.files?.[0])} />
             </div>
           </CardContent>
         </Card>
 
-        {/* Change Password */}
+        <Card className="bg-white border-slate-100 shadow-sm rounded-2xl">
+          <CardHeader className="flex flex-row items-center gap-3 pb-2">
+            <div className="h-9 w-9 rounded-xl bg-sky-50 ring-1 ring-sky-200 flex items-center justify-center">
+              <CalendarDays className="h-5 w-5 text-sky-500" />
+            </div>
+            <div>
+              <CardTitle className="text-sm font-bold text-slate-800">Google Account Integration</CardTitle>
+              <CardDescription className="text-xs text-slate-400">Used for direct Calendar and Tasks sync in Planner</CardDescription>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleSaveGoogle} className="space-y-3">
+              <Input
+                value={googleClientId}
+                onChange={(event) => setGoogleClientId(event.target.value)}
+                placeholder="Google OAuth Web Client ID"
+                className="h-10 bg-slate-50 border-slate-200"
+              />
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                <p className="text-xs text-slate-500">
+                  Enable Google Calendar API and Google Tasks API for this OAuth client. Add your GitHub Pages URL as an authorized JavaScript origin.
+                </p>
+                <Button type="submit" className="bg-sky-500 hover:bg-sky-600 text-white font-semibold cursor-pointer h-10">
+                  Save Google ID
+                </Button>
+              </div>
+            </form>
+          </CardContent>
+        </Card>
+
         <Card className="bg-white border-slate-100 shadow-sm rounded-2xl">
           <CardHeader className="flex flex-row items-center gap-3 pb-2">
             <div className="h-9 w-9 rounded-xl bg-teal-50 ring-1 ring-teal-200 flex items-center justify-center">
               <KeyRound className="h-5 w-5 text-teal-500" />
             </div>
             <div>
-              <CardTitle className="text-sm font-bold text-slate-800">Change Password</CardTitle>
-              <CardDescription className="text-xs text-slate-400">Update your single-tenant access credential</CardDescription>
+              <CardTitle className="text-sm font-bold text-slate-800">Access Key</CardTitle>
+              <CardDescription className="text-xs text-slate-400">Stored only in this browser for static hosting</CardDescription>
             </div>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleUpdatePassword} className="space-y-4 max-w-md">
-              <div className="space-y-1.5">
-                <Label className="text-sm font-semibold text-slate-700">Current Password</Label>
-                <Input type="password" value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)}
-                  placeholder="••••••••" required
-                  className="bg-slate-50 border-slate-200 text-slate-800 h-10" />
-              </div>
-              <div className="space-y-1.5">
-                <Label className="text-sm font-semibold text-slate-700">New Password</Label>
-                <Input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)}
-                  placeholder="••••••••" required
-                  className="bg-slate-50 border-slate-200 text-slate-800 h-10" />
-              </div>
-              <div className="space-y-1.5">
-                <Label className="text-sm font-semibold text-slate-700">Confirm New Password</Label>
-                <Input type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)}
-                  placeholder="••••••••" required
-                  className="bg-slate-50 border-slate-200 text-slate-800 h-10" />
-              </div>
-
-              {passStatus && (
-                <div className={`text-xs rounded-xl px-4 py-3 border ${
-                  passStatus.type === "success"
-                    ? "bg-emerald-50 border-emerald-200 text-emerald-700"
-                    : "bg-rose-50 border-rose-200 text-rose-700"
-                }`}>
-                  {passStatus.msg}
-                </div>
-              )}
-
-              <Button type="submit" disabled={passLoading}
-                className="bg-teal-500 hover:bg-teal-600 text-white font-semibold cursor-pointer shadow-sm rounded-xl">
-                {passLoading ? "Updating..." : "Update Password"}
+            <form onSubmit={handleUpdateKey} className="flex flex-col gap-3 sm:flex-row">
+              <Input type="password" value={newKey} onChange={(event) => setNewKey(event.target.value)} placeholder="New access key" className="h-10 bg-slate-50 border-slate-200" />
+              <Button type="submit" className="bg-teal-500 hover:bg-teal-600 text-white font-semibold cursor-pointer h-10">
+                Save Key
               </Button>
             </form>
           </CardContent>
         </Card>
 
-        {/* Developer Tools */}
         <Card className="bg-white border-slate-100 shadow-sm rounded-2xl">
-          <CardHeader className="flex flex-row items-center gap-3 pb-2">
-            <div className="h-9 w-9 rounded-xl bg-violet-50 ring-1 ring-violet-200 flex items-center justify-center">
-              <Sparkles className="h-5 w-5 text-violet-500" />
-            </div>
-            <div>
-              <CardTitle className="text-sm font-bold text-slate-800">Developer Utilities</CardTitle>
-              <CardDescription className="text-xs text-slate-400">Generate sample data or reset the local cache</CardDescription>
-            </div>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-bold text-slate-800">Daily Targets</CardTitle>
+            <CardDescription className="text-xs text-slate-400">These power the dashboard target panel</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {goals.map((goal) => (
+              <div key={goal.id} className="grid grid-cols-1 gap-2 rounded-xl bg-slate-50 border border-slate-100 p-3 sm:grid-cols-[1fr_130px_120px]">
+                <Input value={goal.title} onChange={(event) => updateGoal(goal.id, { title: event.target.value })} className="h-9 bg-white border-slate-200" />
+                <Input value={goal.target} onChange={(event) => updateGoal(goal.id, { target: event.target.value })} className="h-9 bg-white border-slate-200" />
+                <div className="flex items-center gap-2">
+                  <Input type="number" min="0" max="100" value={goal.progress} onChange={(event) => updateGoal(goal.id, { progress: Number(event.target.value) })} className="h-9 bg-white border-slate-200" />
+                  <span className="text-xs text-slate-500">%</span>
+                </div>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+
+        <Card className="bg-white border-slate-100 shadow-sm rounded-2xl">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-bold text-slate-800">Reset Controls</CardTitle>
+            <CardDescription className="text-xs text-slate-400">Clear your local browser vault</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="bg-violet-50 border border-violet-200 rounded-xl px-4 py-3">
-              <p className="text-xs font-semibold text-violet-700 mb-0.5">Generate Demo Data</p>
-              <p className="text-xs text-violet-600">
-                Creates 30 days of realistic, correlated sample data so you can explore the dashboard, trend charts, and AI insights immediately.
-              </p>
-              <Button onClick={handleGenerateMock}
-                className="mt-3 bg-violet-500 hover:bg-violet-600 text-white font-semibold cursor-pointer rounded-xl shadow-sm text-sm">
-                Generate 30 Days of Mock Data
-              </Button>
-            </div>
-
             <div className="bg-rose-50 border border-rose-200 rounded-xl px-4 py-3">
               <div className="flex items-start gap-2 mb-2">
                 <ShieldAlert className="h-4 w-4 text-rose-500 mt-0.5 flex-shrink-0" />
                 <div>
                   <p className="text-xs font-semibold text-rose-700">Clear All Local Data</p>
-                  <p className="text-xs text-rose-600">Permanently removes all locally cached entries from your browser. This cannot be undone.</p>
+                  <p className="text-xs text-rose-600">Permanently removes cached entries, tasks, and target changes from this browser.</p>
                 </div>
               </div>
-              <Button onClick={handleClear} variant="outline"
-                className="border-rose-300 text-rose-600 hover:bg-rose-100 cursor-pointer rounded-xl text-sm">
+              <Button onClick={handleClear} variant="outline" className="border-rose-300 text-rose-600 hover:bg-rose-100 cursor-pointer rounded-xl text-sm">
                 <Trash2 className="mr-2 h-4 w-4" />
                 Clear Local Store
               </Button>

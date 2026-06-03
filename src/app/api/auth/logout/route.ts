@@ -1,7 +1,19 @@
 import { NextResponse } from "next/server";
+import { supabaseAdmin } from "@/lib/supabase";
+import { clearSessionCookie } from "@/lib/auth";
 
 export async function POST() {
-  const response = NextResponse.json({ success: true });
-  response.cookies.delete("lifeos_session");
-  return response;
+  try {
+    await supabaseAdmin
+      .from("app_settings")
+      .delete()
+      .eq("key", "session_token");
+
+    await clearSessionCookie();
+
+    return NextResponse.json({ success: true });
+  } catch (err) {
+    console.error("Logout route error:", err);
+    return NextResponse.json({ error: "Server error" }, { status: 500 });
+  }
 }

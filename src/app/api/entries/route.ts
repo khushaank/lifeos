@@ -1,74 +1,193 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
-import { cookies } from "next/headers";
-import { verifySessionToken } from "@/lib/security";
+import { verifyAuth } from "@/lib/auth";
 
 export async function GET() {
+  const isAuth = await verifyAuth();
+  if (!isAuth) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   try {
-    const cookieStore = await cookies();
-    const sessionToken = cookieStore.get("lifeos_session")?.value;
-    const systemSecret = process.env.SESSION_SECRET || "default-secret-string-at-least-32-chars";
-
-    if (!sessionToken || !(await verifySessionToken(sessionToken, systemSecret))) {
-      return NextResponse.json({ error: "Unauthorized access" }, { status: 403 });
-    }
-
-    // Query daily entries along with related logs
-    const { data, error } = await supabaseAdmin
+    const { data: dailyEntries, error: deError } = await supabaseAdmin
       .from("daily_entries")
-      .select(`
-        *,
-        exercise_logs(workout_done, duration_minutes, workout_type),
-        reading_logs(pages_read, book_name),
-        study_logs(study_hours, topic)
-      `)
+      .select("*")
       .order("date", { ascending: false });
 
-    if (error) {
-      return NextResponse.json({ error: error.message }, { status: 500 });
-    }
+    if (deError) throw deError;
 
-    // Format output to conform with Zustand's LogEntry structure
-    const formattedEntries = (data || []).map((entry: any) => {
-      const exercise = entry.exercise_logs?.[0];
-      const reading = entry.reading_logs?.[0];
-      const study = entry.study_logs?.[0];
+    const { data: exerciseLogs, error: exError } = await supabaseAdmin
+      .from("exercise_logs")
+      .select("*");
+
+    if (exError) throw exError;
+
+    const { data: readingLogs, error: rdError } = await supabaseAdmin
+      .from("reading_logs")
+      .select("*");
+
+    if (rdError) throw rdError;
+
+    const { data: studyLogs, error: stError } = await supabaseAdmin
+      .from("study_logs")
+      .select("*");
+
+    if (stError) throw stError;
+
+    const combined = (dailyEntries || []).map((entry) => {
+      const exercise = (exerciseLogs || []).find((x) => x.entry_id === entry.id || x.date === entry.date);
+      const reading = (readingLogs || []).find((x) => x.entry_id === entry.id || x.date === entry.date);
+      const study = (studyLogs || []).find((x) => x.entry_id === entry.id || x.date === entry.date);
 
       return {
         id: entry.id,
         date: entry.date,
         mood_label: entry.mood_label,
         mood_score: entry.mood_score,
-        bedtime: entry.bedtime || "",
-        wake_time: entry.wake_time || "",
-        sleep_hours: entry.sleep_hours ? parseFloat(entry.sleep_hours) : 0,
-        sleep_quality: entry.sleep_quality || 0,
-        energy_level: entry.energy_level || 0,
-        focus_level: entry.focus_level || 0,
-        productivity_level: entry.productivity_level || 0,
-        stress_level: entry.stress_level || 0,
-        water_intake: entry.water_intake ? parseFloat(entry.water_intake) : 0,
-        junk_food: entry.junk_food || false,
-        social_interaction: entry.social_interaction || 0,
-        notes: entry.notes || "",
-        wins: entry.wins || "",
-        challenges: entry.challenges || "",
-        life_score: entry.life_score ? parseFloat(entry.life_score) : 0,
-        
+        bedtime: entry.bedtime || undefined,
+        wake_time: entry.wake_time || undefined,
+        sleep_hours: entry.sleep_hours ? Number(entry.sleep_hours) : undefined,
+        sleep_quality: entry.sleep_quality || undefined,
+        energy_level: entry.energy_level || undefined,
+        focus_level: entry.focus_level || undefined,
+        productivity_level: entry.productivity_level || undefined,
+        stress_level: entry.stress_level || undefined,
+        water_intake: entry.water_intake ? Number(entry.water_intake) : undefined,
+        junk_food: Boolean(entry.junk_food),
+        social_interaction: entry.social_interaction || undefined,
+        notes: entry.notes || undefined,
+        wins: entry.wins || undefined,
+        challenges: entry.challenges || undefined,
+        life_score: entry.life_score ? Number(entry.life_score) : 0,
+
+        // Exercise Sub-Log
         workout_done: exercise?.workout_done || false,
         exercise_duration: exercise?.duration_minutes || 0,
         workout_type: exercise?.workout_type || "",
-        
+
+        // Reading Sub-Log
         pages_read: reading?.pages_read || 0,
         book_name: reading?.book_name || "",
-        
-        study_hours: study?.study_hours ? parseFloat(study?.study_hours) : 0,
+
+        // Study Sub-Log
+        study_hours: study?.study_hours ? Number(study.study_hours) : 0,
         study_topic: study?.topic || "",
       };
     });
 
-    return NextResponse.json({ entries: formattedEntries });
-  } catch (err: any) {
-    return NextResponse.json({ error: "Fetch error entries query failure" }, { status: 500 });
+    return NextResponse.json(combined);
+  } catch (err) {
+    console.error("Failed to fetch entries:", err);
+    return NextResponse.json({ error: "Failed to fetch entries" }, { status: 500 });
+  }
+}
+
+export async function POST(request: NextRequest) {
+  const isAuth = await verifyAuth();
+  if (!isAuth) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  try {
+    const payload = await request.json();
+    if (!payload.date) {
+      return NextResponse.json({ error: "Date is required" }, { status: 400 });
+    }
+
+    const { data: entryData, error: entryError } = await supabaseAdmin
+      .from("daily_entries")
+      .upsert({
+        date: payload.date,
+        mood_label: payload.mood_label,
+        mood_score: payload.mood_score,
+        bedtime: payload.bedtime || null,
+        wake_time: payload.wake_time || null,
+        sleep_hours: payload.sleep_hours || null,
+        sleep_quality: payload.sleep_quality || null,
+        energy_level: payload.energy_level || null,
+        focus_level: payload.focus_level || null,
+        productivity_level: payload.productivity_level || null,
+        stress_level: payload.stress_level || null,
+        water_intake: payload.water_intake || null,
+        junk_food: payload.junk_food || false,
+        social_interaction: payload.social_interaction || null,
+        notes: payload.notes || null,
+        wins: payload.wins || null,
+        challenges: payload.challenges || null,
+        life_score: payload.life_score || 0,
+      }, { onConflict: "date" })
+      .select("id")
+      .single();
+
+    if (entryError || !entryData) {
+      throw entryError || new Error("Failed to retrieve upserted entry ID");
+    }
+
+    // Delete existing related logs to perform clean inserts
+    await supabaseAdmin.from("exercise_logs").delete().eq("entry_id", entryData.id);
+    await supabaseAdmin.from("reading_logs").delete().eq("entry_id", entryData.id);
+    await supabaseAdmin.from("study_logs").delete().eq("entry_id", entryData.id);
+
+    // Insert sub-logs
+    if (payload.workout_done || payload.exercise_duration || payload.workout_type) {
+      await supabaseAdmin.from("exercise_logs").insert({
+        entry_id: entryData.id,
+        date: payload.date,
+        workout_done: payload.workout_done || false,
+        duration_minutes: payload.exercise_duration || 0,
+        workout_type: payload.workout_type || "",
+      });
+    }
+
+    if (payload.pages_read || payload.book_name) {
+      await supabaseAdmin.from("reading_logs").insert({
+        entry_id: entryData.id,
+        date: payload.date,
+        pages_read: payload.pages_read || 0,
+        book_name: payload.book_name || "",
+      });
+    }
+
+    if (payload.study_hours || payload.study_topic) {
+      await supabaseAdmin.from("study_logs").insert({
+        entry_id: entryData.id,
+        date: payload.date,
+        study_hours: payload.study_hours || 0,
+        topic: payload.study_topic || "",
+      });
+    }
+
+    return NextResponse.json({ success: true, id: entryData.id });
+  } catch (err) {
+    console.error("Failed to save entry:", err);
+    return NextResponse.json({ error: "Failed to save entry" }, { status: 500 });
+  }
+}
+
+export async function DELETE(request: NextRequest) {
+  const isAuth = await verifyAuth();
+  if (!isAuth) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  try {
+    const { searchParams } = new URL(request.url);
+    const date = searchParams.get("date");
+    if (!date) {
+      return NextResponse.json({ error: "Date parameter is required" }, { status: 400 });
+    }
+
+    // Delete daily entry (sub-logs cascade delete automatically in schema)
+    const { error } = await supabaseAdmin
+      .from("daily_entries")
+      .delete()
+      .eq("date", date);
+
+    if (error) throw error;
+
+    return NextResponse.json({ success: true });
+  } catch (err) {
+    console.error("Failed to delete entry:", err);
+    return NextResponse.json({ error: "Failed to delete entry" }, { status: 500 });
   }
 }

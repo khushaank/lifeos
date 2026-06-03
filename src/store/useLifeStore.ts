@@ -1,29 +1,26 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import { calculateLifeScore } from "@/lib/formulas";
 
 export interface LogEntry {
   id?: string;
   date: string;
   mood_label: string;
-  mood_score: number; // 1-8
+  mood_score: number;
   bedtime?: string;
   wake_time?: string;
   sleep_hours?: number;
-  sleep_quality?: number; // 1-10
-  energy_level?: number; // 1-10
-  focus_level?: number; // 1-10
-  productivity_level?: number; // 1-10
-  stress_level?: number; // 1-10
-  water_intake?: number; // ml
+  sleep_quality?: number;
+  energy_level?: number;
+  focus_level?: number;
+  productivity_level?: number;
+  stress_level?: number;
+  water_intake?: number;
   junk_food?: boolean;
-  social_interaction?: number; // 1-10
+  social_interaction?: number;
   notes?: string;
   wins?: string;
   challenges?: string;
   life_score: number;
-  
-  // Sub-logs
   workout_done?: boolean;
   exercise_duration?: number;
   workout_type?: string;
@@ -33,8 +30,39 @@ export interface LogEntry {
   study_topic?: string;
 }
 
+export interface LifeTask {
+  id: string;
+  title: string;
+  due_date: string;
+  due_time?: string;
+  notes?: string;
+  priority: "Low" | "Medium" | "High";
+  status: "Todo" | "Doing" | "Done";
+  area: "Health" | "Work" | "Learning" | "Personal";
+  google_event_id?: string;
+  google_task_id?: string;
+  google_synced_at?: string;
+}
+
+export interface LifeGoal {
+  id: string;
+  title: string;
+  target: string;
+  progress: number;
+  color: string;
+}
+
+export interface LifeOSExport {
+  entries: LogEntry[];
+  tasks: LifeTask[];
+  goals: LifeGoal[];
+  exportedAt: string;
+}
+
 interface LifeStore {
   entries: LogEntry[];
+  tasks: LifeTask[];
+  goals: LifeGoal[];
   isAuthenticated: boolean;
   isSyncing: boolean;
   error: string | null;
@@ -42,14 +70,37 @@ interface LifeStore {
   fetchEntries: () => Promise<void>;
   addOrUpdateEntry: (entry: LogEntry) => Promise<boolean>;
   deleteEntry: (date: string) => Promise<boolean>;
-  generateMockData: () => void;
+  addTask: (task: Omit<LifeTask, "id">) => void;
+  updateTask: (id: string, updates: Partial<LifeTask>) => void;
+  deleteTask: (id: string) => void;
+  addGoal: (goal: Omit<LifeGoal, "id">) => void;
+  updateGoal: (id: string, updates: Partial<LifeGoal>) => void;
+  deleteGoal: (id: string) => void;
+  importData: (data: Partial<LifeOSExport>) => void;
+  exportData: () => LifeOSExport;
   clearAllData: () => void;
 }
+
+const defaultGoals: LifeGoal[] = [
+  { id: "sleep", title: "Sleep Duration", target: "8.0 hrs", progress: 72, color: "bg-sky-500" },
+  { id: "water", title: "Water Intake", target: "3,000 ml", progress: 66, color: "bg-teal-500" },
+  { id: "workouts", title: "Weekly Workouts", target: "5 days", progress: 60, color: "bg-emerald-500" },
+  { id: "study", title: "Study Goal", target: "2 hrs / day", progress: 55, color: "bg-violet-500" },
+];
+
+const makeId = () => {
+  if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
+    return crypto.randomUUID();
+  }
+  return `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+};
 
 export const useLifeStore = create<LifeStore>()(
   persist(
     (set, get) => ({
       entries: [],
+      tasks: [],
+      goals: defaultGoals,
       isAuthenticated: false,
       isSyncing: false,
       error: null,
@@ -58,150 +109,81 @@ export const useLifeStore = create<LifeStore>()(
 
       fetchEntries: async () => {
         set({ isSyncing: true, error: null });
-        try {
-          const res = await fetch("/api/entries");
-          if (res.ok) {
-            const data = await res.json();
-            if (data.entries) {
-              set({ entries: data.entries });
-            }
-          }
-        } catch (err) {
-          console.warn("Server fetch failed, running local mode only.", err);
-        } finally {
-          set({ isSyncing: false });
-        }
+        window.setTimeout(() => set({ isSyncing: false }), 250);
       },
 
       addOrUpdateEntry: async (newEntry) => {
         const currentEntries = get().entries;
-        const index = currentEntries.findIndex((e) => e.date === newEntry.date);
-        
-        let updatedEntries = [...currentEntries];
+        const index = currentEntries.findIndex((entry) => entry.date === newEntry.date);
+        const updatedEntries = [...currentEntries];
+
         if (index > -1) {
           updatedEntries[index] = newEntry;
         } else {
           updatedEntries.push(newEntry);
         }
-        
-        // Sort entries by date desc
+
         updatedEntries.sort((a, b) => b.date.localeCompare(a.date));
         set({ entries: updatedEntries });
-
-        // Sync with API
-        try {
-          const res = await fetch("/api/check-in", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(newEntry),
-          });
-          if (!res.ok) {
-            const errData = await res.json();
-            console.warn("API sync issue:", errData.error);
-          }
-          return res.ok;
-        } catch (err) {
-          console.warn("Network offline or server api unavailable, saved locally.");
-          return true;
-        }
+        return true;
       },
 
       deleteEntry: async (date) => {
-        const updatedEntries = get().entries.filter((e) => e.date !== date);
-        set({ entries: updatedEntries });
-
-        try {
-          const res = await fetch(`/api/check-in?date=${date}`, {
-            method: "DELETE",
-          });
-          return res.ok;
-        } catch (err) {
-          console.warn("Network offline, deleted locally.");
-          return true;
-        }
+        set({ entries: get().entries.filter((entry) => entry.date !== date) });
+        return true;
       },
+
+      addTask: (task) => {
+        set({ tasks: [{ ...task, id: makeId() }, ...get().tasks] });
+      },
+
+      updateTask: (id, updates) => {
+        set({ tasks: get().tasks.map((task) => (task.id === id ? { ...task, ...updates } : task)) });
+      },
+
+      deleteTask: (id) => {
+        set({ tasks: get().tasks.filter((task) => task.id !== id) });
+      },
+
+      addGoal: (goal) => {
+        set({ goals: [...get().goals, { ...goal, id: makeId() }] });
+      },
+
+      updateGoal: (id, updates) => {
+        set({ goals: get().goals.map((goal) => (goal.id === id ? { ...goal, ...updates } : goal)) });
+      },
+
+      deleteGoal: (id) => {
+        set({ goals: get().goals.filter((goal) => goal.id !== id) });
+      },
+
+      importData: (data) => {
+        set({
+          entries: Array.isArray(data.entries) ? data.entries : get().entries,
+          tasks: Array.isArray(data.tasks) ? data.tasks : get().tasks,
+          goals: Array.isArray(data.goals) ? data.goals : get().goals,
+        });
+      },
+
+      exportData: () => ({
+        entries: get().entries,
+        tasks: get().tasks,
+        goals: get().goals,
+        exportedAt: new Date().toISOString(),
+      }),
 
       clearAllData: () => {
-        set({ entries: [] });
-      },
-
-      generateMockData: () => {
-        const mockEntries: LogEntry[] = [];
-        const moodLabels = ["Terrible", "Bad", "Below Average", "Average", "Good", "Great", "Excellent", "Harvey"];
-        const workoutTypes = ["Running", "Weightlifting", "Yoga", "Swimming", "Cycling"];
-        const bookNames = ["Atomic Habits", "Deep Work", "Thinking, Fast and Slow", "Dune", "Sapiens"];
-        const studyTopics = ["Next.js App Router", "TypeScript Advanced Patterns", "Linear Algebra", "System Design"];
-
-        const today = new Date();
-
-        for (let i = 29; i >= 0; i--) {
-          const currentDate = new Date(today);
-          currentDate.setDate(today.getDate() - i);
-          const dateString = currentDate.toISOString().split("T")[0];
-
-          // Generate somewhat correlated metrics
-          // If exercise is true, mood and productivity tend to be higher.
-          const workout_done = Math.random() > 0.4;
-          const sleep_hours = Math.round((6 + Math.random() * 3 + (workout_done ? 0.5 : 0)) * 10) / 10;
-          const sleep_quality = Math.min(10, Math.round(sleep_hours + Math.random() * 2 - 1));
-          
-          const stress_level = Math.max(1, Math.min(10, Math.round(8 - (sleep_hours - 5) - (workout_done ? 1.5 : 0) + Math.random() * 2)));
-          const productivity_level = Math.max(1, Math.min(10, Math.round(5 + (sleep_hours > 7 ? 2 : -1) + (workout_done ? 1 : 0) + Math.random() * 2)));
-          const focus_level = Math.max(1, Math.min(10, Math.round((productivity_level + sleep_quality) / 2 + Math.random() * 2 - 1)));
-          
-          // Mood matches energy and productivity
-          const avgScore = (sleep_quality + productivity_level + (11 - stress_level)) / 3;
-          const mood_score = Math.max(1, Math.min(8, Math.round((avgScore / 10) * 8 + Math.random() * 1)));
-          const mood_label = moodLabels[mood_score - 1] || "Good";
-          
-          const energy_level = Math.max(1, Math.min(10, Math.round((sleep_quality + mood_score) / 2 * 1.25)));
-          const water_intake = Math.round(1500 + Math.random() * 1500 + (workout_done ? 1000 : 0));
-          const junk_food = Math.random() > 0.7;
-          const social_interaction = Math.floor(Math.random() * 10) + 1;
-
-          const life_score = calculateLifeScore({
-            moodScore: mood_score,
-            sleepQuality: sleep_quality,
-            focusLevel: focus_level,
-            productivityLevel: productivity_level,
-            stressLevel: stress_level,
-            workoutDone: workout_done
-          });
-
-          mockEntries.push({
-            date: dateString,
-            mood_score,
-            mood_label,
-            sleep_hours,
-            sleep_quality,
-            energy_level,
-            focus_level,
-            productivity_level,
-            stress_level,
-            water_intake,
-            junk_food,
-            social_interaction,
-            life_score,
-            workout_done,
-            exercise_duration: workout_done ? Math.floor(20 + Math.random() * 60) : 0,
-            workout_type: workout_done ? workoutTypes[Math.floor(Math.random() * workoutTypes.length)] : "",
-            pages_read: Math.random() > 0.5 ? Math.floor(5 + Math.random() * 30) : 0,
-            book_name: Math.random() > 0.5 ? bookNames[Math.floor(Math.random() * bookNames.length)] : "",
-            study_hours: Math.random() > 0.6 ? Math.round((0.5 + Math.random() * 4) * 10) / 10 : 0,
-            study_topic: Math.random() > 0.6 ? studyTopics[Math.floor(Math.random() * studyTopics.length)] : "",
-            notes: `Logged on ${dateString}. Felt ${mood_label.toLowerCase()} today.`,
-            wins: Math.random() > 0.3 ? "Completed all key objectives!" : undefined,
-            challenges: Math.random() > 0.7 ? "Felt a bit tired in the afternoon." : undefined
-          });
-        }
-
-        mockEntries.sort((a, b) => b.date.localeCompare(a.date));
-        set({ entries: mockEntries });
+        set({ entries: [], tasks: [], goals: defaultGoals });
       },
     }),
     {
       name: "lifeos-storage",
-      partialize: (state) => ({ entries: state.entries, isAuthenticated: state.isAuthenticated }),
+      partialize: (state) => ({
+        entries: state.entries,
+        tasks: state.tasks,
+        goals: state.goals,
+        isAuthenticated: state.isAuthenticated,
+      }),
     }
   )
 );

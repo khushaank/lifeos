@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { LayoutDashboard, CheckSquare, BrainCircuit, Settings, LogOut, Flame } from "lucide-react";
+import { LayoutDashboard, CheckSquare, BrainCircuit, Settings, LogOut, Flame, CalendarDays } from "lucide-react";
 import { useLifeStore } from "@/store/useLifeStore";
 import { cn } from "@/lib/utils";
 
@@ -14,20 +14,14 @@ export function Navigation() {
   const navItems = [
     { name: "Dashboard", href: "/", icon: LayoutDashboard },
     { name: "Check In", href: "/check-in", icon: CheckSquare },
+    { name: "Planner", href: "/planner", icon: CalendarDays },
     { name: "Insights", href: "/insights", icon: BrainCircuit },
     { name: "Settings", href: "/settings", icon: Settings },
   ];
 
-  const handleLogout = async () => {
-    try {
-      const res = await fetch("/api/auth/logout", { method: "POST" });
-      if (res.ok) {
-        setAuthenticated(false);
-        router.push("/login");
-      }
-    } catch (err) {
-      console.error("Logout failed:", err);
-    }
+  const handleLogout = () => {
+    setAuthenticated(false);
+    router.push("/login");
   };
 
   return (
@@ -43,7 +37,7 @@ export function Navigation() {
 
         <nav className="flex flex-1 flex-col gap-1.5">
           {navItems.map((item) => {
-            const isActive = pathname === item.href;
+            const isActive = pathname === item.href || (item.href !== "/" && pathname?.startsWith(item.href));
             const Icon = item.icon;
             return (
               <Link
@@ -75,7 +69,7 @@ export function Navigation() {
       {/* Mobile Bottom Bar */}
       <nav className="fixed bottom-0 left-0 right-0 z-50 flex h-16 items-center justify-around border-t border-slate-200 bg-white/95 backdrop-blur-md px-2 md:hidden shadow-lg">
         {navItems.map((item) => {
-          const isActive = pathname === item.href;
+          const isActive = pathname === item.href || (item.href !== "/" && pathname?.startsWith(item.href));
           const Icon = item.icon;
           return (
             <Link
