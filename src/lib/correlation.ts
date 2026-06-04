@@ -5,9 +5,6 @@ export interface CorrelationResult {
   description: string;
 }
 
-/**
- * Calculates the Pearson product-moment correlation coefficient.
- */
 export function calculatePearson(x: number[], y: number[]): number {
   const n = x.length;
   if (n === 0 || n !== y.length) return 0;
