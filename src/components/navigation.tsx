@@ -122,6 +122,7 @@ export function Navigation() {
     { name: "Decision Journal", shortName: "Journal", href: "/journal", icon: Scale },
     { name: "Missed Opportunities", shortName: "Missed", href: "/opportunities", icon: Target },
     { name: "Movies", shortName: "Movies", href: "/movies", icon: Film },
+    { name: "Books Library", shortName: "Books", href: "/books", icon: BookOpen },
   ];
 
   const otherNav: NavItem[] = [{ name: "WWHD", shortName: "WWHD", href: "/wwhd", icon: Flame }];

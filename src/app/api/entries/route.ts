@@ -65,10 +65,12 @@ export async function GET() {
         workout_done: exercise?.workout_done || false,
         exercise_duration: exercise?.duration_minutes || 0,
         workout_type: exercise?.workout_type || "",
+        workout_selfie: exercise?.selfie_url || "",
 
         // Reading Sub-Log
         pages_read: reading?.pages_read || 0,
         book_name: reading?.book_name || "",
+        book_id: reading?.book_id || "",
 
         // Study Sub-Log
         study_hours: study?.study_hours ? Number(study.study_hours) : 0,
@@ -132,13 +134,17 @@ export async function POST(request: NextRequest) {
 
     // Insert sub-logs
     if (payload.workout_done || payload.exercise_duration || payload.workout_type) {
-      await supabaseAdmin.from("exercise_logs").insert({
+      const exerciseRow: Record<string, unknown> = {
         entry_id: entryData.id,
         date: payload.date,
         workout_done: payload.workout_done || false,
         duration_minutes: payload.exercise_duration || 0,
         workout_type: payload.workout_type || "",
-      });
+      };
+      if (payload.workout_selfie) {
+        exerciseRow.selfie_url = payload.workout_selfie;
+      }
+      await supabaseAdmin.from("exercise_logs").insert(exerciseRow);
     }
 
     if (payload.pages_read || payload.book_name) {
@@ -147,6 +153,7 @@ export async function POST(request: NextRequest) {
         date: payload.date,
         pages_read: payload.pages_read || 0,
         book_name: payload.book_name || "",
+        book_id: payload.book_id || null,
       });
     }
 

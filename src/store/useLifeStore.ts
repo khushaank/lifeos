@@ -33,8 +33,10 @@ export interface LogEntry {
   workout_done?: boolean;
   exercise_duration?: number;
   workout_type?: string;
+  workout_selfie?: string;
   pages_read?: number;
   book_name?: string;
+  book_id?: string;
   study_hours?: number;
   study_topic?: string;
 }
@@ -117,6 +119,19 @@ export interface MovieEntry {
   updated_at?: string;
 }
 
+export interface Book {
+  id: string;
+  title: string;
+  author: string;
+  total_pages: number;
+  current_page: number;
+  completed: boolean;
+  notes: string;
+  cover_url?: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
 export type ExperimentTrackType =
   | "youtube"
   | "study"
@@ -146,6 +161,7 @@ export interface LifeOSExport {
   opportunities?: MissedOpportunity[];
   movies?: MovieEntry[];
   experiments?: ActiveExperiment[];
+  books?: Book[];
   exportedAt: string;
 }
 
@@ -197,6 +213,10 @@ interface LifeStore {
   fetchMovies: () => Promise<void>;
   saveMovie: (item: MovieEntry) => Promise<boolean>;
   deleteMovie: (id: string) => Promise<boolean>;
+  books: Book[];
+  fetchBooks: () => Promise<void>;
+  saveBook: (item: Book) => Promise<boolean>;
+  deleteBook: (id: string) => Promise<boolean>;
   fetchExperiments: () => Promise<void>;
   installExperiment: (params: {
     templateId: string;
@@ -273,6 +293,7 @@ export const useLifeStore = create<LifeStore>()(
       decisions: [],
       opportunities: [],
       movies: [],
+      books: [],
       experiments: [],
       focusTimer: defaultFocusTimer(),
       isAuthenticated: false,
@@ -300,13 +321,14 @@ export const useLifeStore = create<LifeStore>()(
             return;
           }
 
-          const [tkRes, glRes, decRes, oppRes, movRes, expRes] = await Promise.all([
+          const [tkRes, glRes, decRes, oppRes, movRes, expRes, bkRes] = await Promise.all([
             fetch("/api/tasks"),
             fetch("/api/goals"),
             fetch("/api/decisions"),
             fetch("/api/opportunities"),
             fetch("/api/movies"),
             fetch("/api/experiments"),
+            fetch("/api/books"),
           ]);
 
           if (tkRes.ok) set({ tasks: await tkRes.json() });
@@ -318,6 +340,7 @@ export const useLifeStore = create<LifeStore>()(
           }
           if (oppRes.ok) set({ opportunities: await oppRes.json() });
           if (movRes.ok) set({ movies: await movRes.json() });
+          if (bkRes.ok) set({ books: await bkRes.json() });
 
           if (glRes.ok) {
             const glData = await glRes.json();
@@ -726,6 +749,59 @@ export const useLifeStore = create<LifeStore>()(
         }
       },
 
+      fetchBooks: async () => {
+        try {
+          const res = await fetch("/api/books");
+          if (!res.ok) {
+            if (res.status === 401) set({ isAuthenticated: false });
+            return;
+          }
+          set({ books: await res.json() });
+        } catch (err) {
+          console.error("Fetch books error:", err);
+        }
+      },
+
+      saveBook: async (item) => {
+        try {
+          const res = await fetch("/api/books", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(item),
+          });
+          if (!res.ok) {
+            if (res.status === 401) set({ isAuthenticated: false });
+            return false;
+          }
+          const savedBook = await res.json();
+          const list = get().books;
+          const idx = list.findIndex((b) => b.id === item.id || b.id === savedBook.id);
+          const next = [...list];
+          if (idx > -1) next[idx] = savedBook;
+          else next.unshift(savedBook);
+          set({ books: next });
+          return true;
+        } catch (err) {
+          console.error("Save book error:", err);
+          return false;
+        }
+      },
+
+      deleteBook: async (id) => {
+        try {
+          const res = await fetch(`/api/books?id=${id}`, { method: "DELETE" });
+          if (!res.ok) {
+            if (res.status === 401) set({ isAuthenticated: false });
+            return false;
+          }
+          set({ books: get().books.filter((b) => b.id !== id) });
+          return true;
+        } catch (err) {
+          console.error("Delete book error:", err);
+          return false;
+        }
+      },
+
       fetchExperiments: async () => {
         try {
           const res = await fetch("/api/experiments");
@@ -861,6 +937,7 @@ export const useLifeStore = create<LifeStore>()(
           decisions: Array.isArray(data.decisions) ? data.decisions : get().decisions,
           opportunities: Array.isArray(data.opportunities) ? data.opportunities : get().opportunities,
           movies: Array.isArray(data.movies) ? data.movies : get().movies,
+          books: Array.isArray(data.books) ? data.books : get().books,
           experiments: Array.isArray(data.experiments) ? data.experiments : get().experiments,
         });
       },
@@ -872,6 +949,7 @@ export const useLifeStore = create<LifeStore>()(
         decisions: get().decisions,
         opportunities: get().opportunities,
         movies: get().movies,
+        books: get().books,
         experiments: get().experiments,
         exportedAt: new Date().toISOString(),
       }),
@@ -884,6 +962,7 @@ export const useLifeStore = create<LifeStore>()(
           decisions: [],
           opportunities: [],
           movies: [],
+          books: [],
           experiments: [],
         });
       },
@@ -897,6 +976,7 @@ export const useLifeStore = create<LifeStore>()(
         decisions: state.decisions,
         opportunities: state.opportunities,
         movies: state.movies,
+        books: state.books,
         experiments: state.experiments,
         focusTimer: state.focusTimer,
         isAuthenticated: state.isAuthenticated,

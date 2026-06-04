@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useLifeStore } from "@/store/useLifeStore";
 import { calculateLifeScore } from "@/lib/formulas";
@@ -12,8 +12,9 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { PageShell } from "@/components/page-shell";
-import { Save, Smile, Moon, Brain, Flame, Trash2, Activity, CheckCircle2 } from "lucide-react";
+import { Save, Smile, Moon, Brain, Flame, Trash2, Activity, CheckCircle2, Camera, X as XIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { compressImage } from "@/lib/image";
 
 const MOOD_LABELS = ["Terrible", "Bad", "Below Average", "Average", "Good", "Great", "Excellent", "Harvey"];
 const MOOD_COLORS = ["text-rose-600", "text-orange-500", "text-amber-500", "text-yellow-500", "text-lime-500", "text-green-500", "text-emerald-500", "text-teal-600"];
@@ -104,6 +105,9 @@ export default function CheckInPage() {
   const deleteEntry = useLifeStore((state) => state.deleteEntry);
   const entries = useLifeStore((state) => state.entries);
   const isSyncing = useLifeStore((state) => state.isSyncing);
+  const books = useLifeStore((state) => state.books);
+  const saveBook = useLifeStore((state) => state.saveBook);
+  const syncAll = useLifeStore((state) => state.syncAll);
   const initialDate = searchParams.get("date") || todayString();
   const [date, setDate] = useState(initialDate);
   const [moodScore, setMoodScore] = useState(DEFAULT_CHECK_IN_FORM.moodScore);
@@ -121,6 +125,8 @@ export default function CheckInPage() {
   const [workoutType, setWorkoutType] = useState(DEFAULT_CHECK_IN_FORM.workoutType);
   const [pagesRead, setPagesRead] = useState(DEFAULT_CHECK_IN_FORM.pagesRead);
   const [bookName, setBookName] = useState(DEFAULT_CHECK_IN_FORM.bookName);
+  const [bookId, setBookId] = useState("");
+  const [isCustom, setIsCustom] = useState(false);
   const [studyHours, setStudyHours] = useState(DEFAULT_CHECK_IN_FORM.studyHours);
   const [studyTopic, setStudyTopic] = useState(DEFAULT_CHECK_IN_FORM.studyTopic);
   const [notes, setNotes] = useState(DEFAULT_CHECK_IN_FORM.notes);
@@ -128,6 +134,8 @@ export default function CheckInPage() {
   const [challenges, setChallenges] = useState(DEFAULT_CHECK_IN_FORM.challenges);
   const [saving, setSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
+  const [workoutSelfie, setWorkoutSelfie] = useState<string>("");
+  const selfieInputRef = useRef<HTMLInputElement>(null);
 
   const formSetters = {
     setMoodScore,
@@ -167,13 +175,38 @@ export default function CheckInPage() {
     }
   }, [searchParams]);
 
+  useEffect(() => {
+    syncAll({ force: true });
+  }, [syncAll]);
+
   const loadFormForDate = (targetDate: string) => {
     const entry = entries.find((e) => e.date === targetDate);
     if (entry) {
       applyFormState(formSetters, entryToCheckInForm(entry));
+      if (entry.book_id) {
+        setBookId(entry.book_id);
+        setIsCustom(false);
+      } else if (entry.book_name) {
+        setBookId("custom");
+        setIsCustom(true);
+        setBookName(entry.book_name);
+      } else {
+        setBookId("");
+        setIsCustom(false);
+      }
     } else {
       applyFormState(formSetters, DEFAULT_CHECK_IN_FORM);
+      const activeBook = books.find((b) => !b.completed);
+      if (activeBook) {
+        setBookId(activeBook.id);
+        setIsCustom(false);
+        setBookName(activeBook.title);
+      } else {
+        setBookId("");
+        setIsCustom(false);
+      }
     }
+    setWorkoutSelfie("");
     setSaveMessage(null);
   };
 
@@ -209,8 +242,10 @@ export default function CheckInPage() {
       workout_done: workoutDone,
       exercise_duration: workoutDone ? exerciseDuration : 0,
       workout_type: workoutDone ? workoutType : "",
+      workout_selfie: workoutDone ? workoutSelfie : "",
       pages_read: pagesRead,
       book_name: pagesRead > 0 ? bookName : "",
+      book_id: pagesRead > 0 ? (bookId === "custom" ? "" : bookId) : "",
       study_hours: studyHours,
       study_topic: studyHours > 0 ? studyTopic : "",
       notes,
@@ -218,6 +253,25 @@ export default function CheckInPage() {
       challenges,
       life_score,
     };
+
+    // Calculate progress difference to avoid double-counting on edits
+    if (pagesRead > 0 && bookId && bookId !== "custom") {
+      const selectedBook = books.find((b) => b.id === bookId);
+      if (selectedBook) {
+        const oldPagesRead = existingEntry?.pages_read || 0;
+        const diff = pagesRead - oldPagesRead;
+        if (diff !== 0) {
+          const newCurrentPage = Math.min(selectedBook.total_pages, Math.max(0, selectedBook.current_page + diff));
+          const isCompleted = newCurrentPage >= selectedBook.total_pages;
+          await saveBook({
+            ...selectedBook,
+            current_page: newCurrentPage,
+            completed: isCompleted,
+          });
+        }
+      }
+    }
+
     const success = await addOrUpdateEntry(payload);
     setSaving(false);
     if (success) {
@@ -491,6 +545,54 @@ export default function CheckInPage() {
                 </div>
               )}
 
+              {/* Workout Selfie Upload */}
+              {workoutDone && (
+                <div className="border-t border-slate-100 pt-4">
+                  <p className="text-sm font-semibold text-slate-700 mb-2">Workout Selfie</p>
+                  {workoutSelfie ? (
+                    <div className="relative inline-block">
+                      <img
+                        src={workoutSelfie}
+                        alt="Workout selfie"
+                        className="h-28 w-28 rounded-xl object-cover border-2 border-emerald-200 dark:border-emerald-800 shadow-sm"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setWorkoutSelfie("")}
+                        className="absolute -top-2 -right-2 h-6 w-6 bg-rose-500 text-white rounded-full flex items-center justify-center cursor-pointer shadow-md hover:bg-rose-600 transition-colors"
+                      >
+                        <XIcon className="h-3 w-3" />
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => selfieInputRef.current?.click()}
+                      className="flex items-center gap-2 px-4 py-2.5 rounded-xl border-2 border-dashed border-slate-200 hover:border-emerald-400 text-slate-500 hover:text-emerald-600 text-xs font-bold cursor-pointer transition-colors"
+                    >
+                      <Camera className="h-4 w-4" />
+                      Upload selfie
+                    </button>
+                  )}
+                  <input
+                    ref={selfieInputRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={async (e) => {
+                      const file = e.target.files?.[0];
+                      if (!file) return;
+                      try {
+                        const dataUrl = await compressImage(file, 600, 0.7);
+                        setWorkoutSelfie(dataUrl);
+                      } catch (err) {
+                        console.error("Selfie compression failed:", err);
+                      }
+                    }}
+                  />
+                </div>
+              )}
+
               <div className="flex items-center justify-between rounded-xl bg-slate-50 border border-slate-100 px-4 py-3">
                 <div>
                   <p className="text-sm font-semibold text-slate-700">Ate Junk Food?</p>
@@ -510,14 +612,99 @@ export default function CheckInPage() {
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <Label className="text-sm font-semibold text-slate-700">Book Name</Label>
-                  <Input
-                    type="text"
-                    value={bookName}
-                    placeholder="e.g. Atomic Habits"
-                    onChange={(e) => setBookName(e.target.value)}
-                    className="bg-slate-50 border-slate-200 text-slate-800 h-10"
-                  />
+                  <Label className="text-sm font-semibold text-slate-700">Select Book</Label>
+                  <select
+                    value={bookId}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      if (val === "custom") {
+                        setBookId("custom");
+                        setIsCustom(true);
+                        setBookName("");
+                      } else {
+                        setBookId(val);
+                        setIsCustom(false);
+                        const b = books.find((x) => x.id === val);
+                        setBookName(b ? b.title : "");
+                      }
+                    }}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 h-10 text-sm text-slate-800 focus:outline-none focus:ring-1 focus:ring-teal-500"
+                  >
+                    <option value="">Select a book...</option>
+                    {books.filter(b => !b.completed).length > 0 && (
+                      <optgroup label="Currently Reading">
+                        {books.filter(b => !b.completed).map((b) => (
+                          <option key={b.id} value={b.id}>
+                            {b.title} {b.author ? `(${b.author})` : ""}
+                          </option>
+                        ))}
+                      </optgroup>
+                    )}
+                    {books.filter(b => b.completed).length > 0 && (
+                      <optgroup label="Completed">
+                        {books.filter(b => b.completed).map((b) => (
+                          <option key={b.id} value={b.id}>
+                            ✓ {b.title}
+                          </option>
+                        ))}
+                      </optgroup>
+                    )}
+                    <option value="custom">[Log a custom book title...]</option>
+                  </select>
+
+                  {isCustom && (
+                    <div className="mt-2.5 space-y-1.5">
+                      <Label className="text-xs font-semibold text-slate-600">Custom Book Title</Label>
+                      <Input
+                        type="text"
+                        value={bookName}
+                        placeholder="Enter book name..."
+                        onChange={(e) => setBookName(e.target.value)}
+                        className="bg-slate-50 border-slate-200 text-slate-800 h-10 text-sm"
+                        required
+                      />
+                    </div>
+                  )}
+
+                  {bookId && bookId !== "custom" && (
+                    (() => {
+                      const selBook = books.find(b => b.id === bookId);
+                      if (!selBook) return null;
+                      const progressPct = selBook.total_pages > 0 ? Math.round((selBook.current_page / selBook.total_pages) * 100) : 0;
+                      const projectedPage = Math.min(selBook.total_pages, selBook.current_page + pagesRead);
+                      const projectedPct = selBook.total_pages > 0 ? Math.round((projectedPage / selBook.total_pages) * 100) : 0;
+
+                      return (
+                        <div className="mt-3 p-3 rounded-xl border border-slate-100 bg-slate-50/50 dark:bg-slate-900/10 space-y-2">
+                          <div className="flex justify-between items-center text-xs">
+                            <span className="text-slate-500 font-semibold">Goodreads Reading Progress</span>
+                            <span className="font-bold text-slate-800">
+                              {selBook.current_page} / {selBook.total_pages} pages ({progressPct}%)
+                            </span>
+                          </div>
+                          
+                          <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden relative">
+                            <div
+                              className="h-full bg-sky-400 absolute left-0 top-0 transition-all duration-300"
+                              style={{ width: `${progressPct}%` }}
+                            />
+                            {pagesRead > 0 && (
+                              <div
+                                className="h-full bg-teal-500 absolute left-0 top-0 transition-all duration-300 opacity-70"
+                                style={{ width: `${projectedPct}%` }}
+                              />
+                            )}
+                          </div>
+
+                          {pagesRead > 0 && (
+                            <p className="text-[11px] font-medium text-teal-700 mt-1">
+                              Will update progress to page {projectedPage} of {selBook.total_pages} ({projectedPct}%) {projectedPage >= selBook.total_pages ? "· Mark Book as Completed! 🎉" : ""}
+                            </p>
+                          )}
+                        </div>
+                      );
+                    })()
+                  )}
                 </div>
               </div>
             </CardContent>

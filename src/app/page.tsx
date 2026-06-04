@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { useLifeStore } from "@/store/useLifeStore";
 import { KPIDashboardLazy, TrendChartsLazy } from "@/components/charts-lazy";
 import { useSyncLifeData } from "@/hooks/use-sync-life-data";
@@ -44,6 +45,9 @@ export default function DashboardPage() {
   const todayStr = new Date().toISOString().split("T")[0];
   const loggedToday = entries.some((e) => e.date === todayStr);
   const initialLoad = isSyncing && entries.length === 0;
+
+  // Selfie modal state
+  const [selfieModal, setSelfieModal] = useState<string | null>(null);
 
   return (
     <PageShell mainClassName="space-y-6" className="pb-20">
@@ -233,6 +237,15 @@ export default function DashboardPage() {
                           {e.workout_done && (
                             <Activity className="h-4 w-4 text-emerald-500" />
                           )}
+                          {e.workout_done && e.workout_selfie && (
+                            <button
+                              onClick={() => setSelfieModal(e.workout_selfie!)}
+                              className="h-7 w-7 rounded-full overflow-hidden border-2 border-emerald-300 dark:border-emerald-700 cursor-pointer hover:ring-2 hover:ring-emerald-400 transition-all shadow-sm"
+                              title="View workout selfie"
+                            >
+                              <img src={e.workout_selfie} alt="Selfie" className="w-full h-full object-cover" />
+                            </button>
+                          )}
                           {e.pages_read && e.pages_read > 0 ? (
                             <BookOpen className="h-4 w-4 text-sky-500" />
                           ) : null}
@@ -251,6 +264,28 @@ export default function DashboardPage() {
                 </div>
               </CardContent>
             </Card>
+          )}
+
+          {/* Selfie Modal */}
+          {selfieModal && (
+            <div
+              className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm"
+              onClick={() => setSelfieModal(null)}
+            >
+              <div className="relative max-w-md w-full mx-4" onClick={(ev) => ev.stopPropagation()}>
+                <img
+                  src={selfieModal}
+                  alt="Workout selfie"
+                  className="w-full rounded-2xl shadow-2xl border-4 border-white/20"
+                />
+                <button
+                  onClick={() => setSelfieModal(null)}
+                  className="absolute top-3 right-3 h-8 w-8 bg-black/60 text-white rounded-full flex items-center justify-center cursor-pointer hover:bg-black/80 transition-colors"
+                >
+                  ✕
+                </button>
+              </div>
+            </div>
           )}
 
           <Card className="bg-card border-border shadow-sm rounded-2xl">
