@@ -177,7 +177,7 @@ export default function PlannerPage() {
     <div
       className={cn(
         "min-h-screen bg-slate-50 font-sans pb-24 transition-all duration-300 ease-in-out",
-        isSidebarCollapsed ? "md:pl-20" : "md:pl-64"
+        isSidebarCollapsed ? "md:pl-[4.25rem]" : "md:pl-56"
       )}
     >
       <Navigation />

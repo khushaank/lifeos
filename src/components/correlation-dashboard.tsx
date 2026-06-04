@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { LogEntry } from "@/store/useLifeStore";
 import { calculatePearson, calculateBinaryImpact } from "@/lib/correlation";
+import { ChartContainer } from "@/components/chart-container";
 import {
   ResponsiveContainer,
   ScatterChart,
@@ -141,8 +142,8 @@ export function CorrelationDashboard({ entries }: CorrelationDashboardProps) {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="h-[240px] w-full">
-              <ResponsiveContainer width="100%" height="100%">
+            <ChartContainer height={240}>
+              <ResponsiveContainer width="100%" height={240} minWidth={0}>
                 <ScatterChart margin={{ top: 10, right: 15, bottom: 10, left: -20 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
                   <XAxis type="number" dataKey="x" name={selectedPair.xName} stroke="#94a3b8" fontSize={11} tickLine={false} axisLine={false} label={{ value: selectedPair.xName, position: "insideBottom", offset: -5, fill: "#94a3b8", style: { fontSize: 10 } }} />
@@ -151,7 +152,7 @@ export function CorrelationDashboard({ entries }: CorrelationDashboardProps) {
                   <Scatter name="Days" data={scatterData} fill="#14b8a6" opacity={0.8} />
                 </ScatterChart>
               </ResponsiveContainer>
-            </div>
+            </ChartContainer>
           </CardContent>
         </Card>
       </div>

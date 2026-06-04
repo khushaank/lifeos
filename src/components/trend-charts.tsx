@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { memo, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { LogEntry } from "@/store/useLifeStore";
+import { ChartContainer } from "@/components/chart-container";
 import {
   ResponsiveContainer,
   AreaChart,
@@ -20,7 +21,7 @@ interface TrendChartsProps {
   entries: LogEntry[];
 }
 
-export function TrendCharts({ entries }: TrendChartsProps) {
+function TrendChartsComponent({ entries }: TrendChartsProps) {
   const [timeframe, setTimeframe] = useState<"7d" | "30d" | "all">("7d");
 
   const filteredEntries = [...entries]
@@ -77,8 +78,8 @@ export function TrendCharts({ entries }: TrendChartsProps) {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="h-[260px] w-full">
-              <ResponsiveContainer width="100%" height="100%">
+            <ChartContainer height={260}>
+              <ResponsiveContainer width="100%" height={260} minWidth={0}>
                 <AreaChart data={chartData} margin={{ top: 5, right: 5, left: -25, bottom: 0 }}>
                   <defs>
                     <linearGradient id="colorLifeLight" x1="0" y1="0" x2="0" y2="1">
@@ -100,7 +101,7 @@ export function TrendCharts({ entries }: TrendChartsProps) {
                   <Area yAxisId="right" type="monotone" dataKey="mood_score" name="Mood (1–8)" stroke="#f59e0b" strokeWidth={2} fill="url(#colorMoodLight)" />
                 </AreaChart>
               </ResponsiveContainer>
-            </div>
+            </ChartContainer>
           </CardContent>
         </Card>
 
@@ -113,8 +114,8 @@ export function TrendCharts({ entries }: TrendChartsProps) {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="h-[260px] w-full">
-              <ResponsiveContainer width="100%" height="100%">
+            <ChartContainer height={260}>
+              <ResponsiveContainer width="100%" height={260} minWidth={0}>
                 <LineChart data={chartData} margin={{ top: 5, right: 5, left: -25, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
                   <XAxis dataKey="displayDate" stroke="#94a3b8" fontSize={11} tickLine={false} axisLine={false} />
@@ -126,10 +127,12 @@ export function TrendCharts({ entries }: TrendChartsProps) {
                   <Line yAxisId="right" type="monotone" dataKey="productivity_level" name="Productivity" stroke="#34d399" strokeWidth={2.5} dot={{ r: 3, fill: "#34d399" }} activeDot={{ r: 5 }} />
                 </LineChart>
               </ResponsiveContainer>
-            </div>
+            </ChartContainer>
           </CardContent>
         </Card>
       </div>
     </div>
   );
 }
+
+export const TrendCharts = memo(TrendChartsComponent);

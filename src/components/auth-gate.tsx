@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { useLifeStore } from "@/store/useLifeStore";
 import { Loader2 } from "lucide-react";
+import { CommandPalette } from "@/components/command-palette";
+import { ExperimentNotifications } from "@/components/experiment-notifications";
 
 export function AuthGate({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -20,6 +22,8 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
         const data = await res.json();
         if (data.authenticated) {
           setAuthenticated(true);
+          void useLifeStore.getState().syncAll({ force: true, silent: false });
+          void useLifeStore.getState().fetchFocusTimer();
         } else {
           setAuthenticated(false);
         }
@@ -46,8 +50,8 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
 
   if (checking) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-slate-50 px-4">
-        <div className="flex items-center gap-3 text-slate-500 text-sm">
+      <div className="flex min-h-screen items-center justify-center bg-background px-4">
+        <div className="flex items-center gap-3 text-muted-foreground text-sm">
           <Loader2 className="h-5 w-5 animate-spin text-teal-500" />
           <span>Verifying session...</span>
         </div>
@@ -57,8 +61,8 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
 
   if (!isAuthenticated) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-slate-50 px-4">
-        <div className="flex items-center gap-3 text-slate-500 text-sm">
+      <div className="flex min-h-screen items-center justify-center bg-background px-4">
+        <div className="flex items-center gap-3 text-muted-foreground text-sm">
           <Loader2 className="h-5 w-5 animate-spin text-teal-500" />
           <span>Redirecting to login...</span>
         </div>
@@ -66,5 +70,11 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
     );
   }
 
-  return <>{children}</>;
+  return (
+    <>
+      <CommandPalette />
+      <ExperimentNotifications />
+      {children}
+    </>
+  );
 }

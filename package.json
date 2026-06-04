@@ -6,7 +6,9 @@
     "dev": "next dev --webpack",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "icons": "node scripts/generate-pwa-icons.mjs",
+    "postinstall": "node scripts/generate-pwa-icons.mjs"
   },
   "dependencies": {
     "@radix-ui/react-label": "^2.1.8",
@@ -33,6 +35,7 @@
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.2.7",
+    "sharp": "^0.34.5",
     "tailwindcss": "^4",
     "typescript": "^5"
   }

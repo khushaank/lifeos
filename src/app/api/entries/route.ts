@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
 import { verifyAuth } from "@/lib/auth";
+import { parseJsonBody } from "@/lib/api-json";
 
 export async function GET() {
   const isAuth = await verifyAuth();
@@ -89,8 +90,8 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const payload = await request.json();
-    if (!payload.date) {
+    const payload = await parseJsonBody(request);
+    if (!payload?.date) {
       return NextResponse.json({ error: "Date is required" }, { status: 400 });
     }
 
@@ -115,6 +116,7 @@ export async function POST(request: NextRequest) {
         wins: payload.wins || null,
         challenges: payload.challenges || null,
         life_score: payload.life_score || 0,
+        updated_at: new Date().toISOString(),
       }, { onConflict: "date" })
       .select("id")
       .single();

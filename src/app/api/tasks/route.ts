@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
 import { verifyAuth } from "@/lib/auth";
+import { parseJsonBody } from "@/lib/api-json";
 
 export async function GET() {
   const isAuth = await verifyAuth();
@@ -29,8 +30,8 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const task = await request.json();
-    if (!task.id || !task.title || !task.due_date) {
+    const task = await parseJsonBody(request);
+    if (!task?.id || !task.title || !task.due_date) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
     }
 

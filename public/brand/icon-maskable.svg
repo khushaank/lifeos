@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="LifeOS">
+  <rect width="512" height="512" fill="#0d9488"/>
+  <g transform="translate(56 56) scale(0.78)">
+    <rect width="512" height="512" rx="112" fill="#14b8a6"/>
+    <path
+      fill="#ffffff"
+      d="M256 108c-52 88-128 132-128 188 0 61 49 110 110 110h36c61 0 110-49 110-110 0-56-76-100-128-188zm-92 188c0-38 32-78 92-138 60 60 92 100 92 138 0 30-24 54-54 54h-76c-30 0-54-24-54-54z"
+    />
+  </g>
+</svg>

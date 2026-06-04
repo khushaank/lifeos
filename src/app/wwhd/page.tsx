@@ -1,7 +1,6 @@
 "use client";
 
-import { Navigation } from "@/components/navigation";
-import { useLifeStore } from "@/store/useLifeStore";
+import { PageShell } from "@/components/page-shell";
 import { cn } from "@/lib/utils";
 import { Flame } from "lucide-react";
 
@@ -69,83 +68,103 @@ const rules = [
 ];
 
 export default function WWHDPage() {
-  const isSidebarCollapsed = useLifeStore((state) => state.isSidebarCollapsed);
-
   return (
-    <div
-      className={cn(
-        "min-h-screen bg-slate-950 font-sans pb-24 transition-all duration-300 ease-in-out",
-        isSidebarCollapsed ? "md:pl-20" : "md:pl-64"
-      )}
-    >
-      <Navigation />
+    <PageShell maxWidth="5xl" mainClassName="space-y-8">
+      <div
+        className={cn(
+          "relative overflow-hidden rounded-3xl border shadow-lg text-center",
+          "border-amber-200/80 bg-gradient-to-br from-amber-50 via-white to-orange-50 text-slate-900",
+          "dark:border-slate-800 dark:from-slate-900 dark:via-slate-950 dark:to-black dark:text-white dark:shadow-2xl"
+        )}
+      >
+        <div className="absolute -top-24 -right-24 h-72 w-72 rounded-full bg-amber-400/20 blur-3xl dark:bg-amber-500/10" />
+        <div className="absolute -bottom-16 -left-16 h-56 w-56 rounded-full bg-orange-400/15 blur-3xl dark:bg-rose-500/8" />
 
-      <main className="mx-auto max-w-5xl px-4 py-6 md:px-8 space-y-8">
-        {/* Hero Header */}
-        <div className="relative overflow-hidden rounded-3xl border border-slate-800 bg-gradient-to-br from-slate-900 via-slate-950 to-black text-white shadow-2xl">
-          {/* Ambient glow */}
-          <div className="absolute -top-24 -right-24 h-72 w-72 rounded-full bg-amber-500/10 blur-3xl" />
-          <div className="absolute -bottom-16 -left-16 h-56 w-56 rounded-full bg-rose-500/8 blur-3xl" />
-
-          <div className="relative z-10 px-6 py-10 md:px-10 md:py-14 flex flex-col items-center text-center gap-4">
-            <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-amber-500/15 border border-amber-500/25 backdrop-blur-sm shadow-lg shadow-amber-500/10">
-              <Flame className="h-8 w-8 text-amber-400 fill-current" />
-            </div>
-            <div className="space-y-2">
-              <h1 className="text-4xl md:text-5xl font-black tracking-tight bg-gradient-to-r from-amber-200 via-yellow-100 to-amber-300 bg-clip-text text-transparent">
-                WWHD
-              </h1>
-              <p className="text-lg md:text-xl font-medium text-slate-400">
-                What Would Harvey Do?
-              </p>
-              <p className="text-sm text-slate-500 max-w-md mx-auto leading-relaxed">
-                The rules that separate the exceptional from the average. Read them. Live them. Win.
-              </p>
-            </div>
+        <div className="relative z-10 px-6 py-10 md:px-10 md:py-14 flex flex-col items-center gap-4">
+          <div
+            className={cn(
+              "flex h-16 w-16 items-center justify-center rounded-2xl border backdrop-blur-sm shadow-lg",
+              "bg-amber-500/20 border-amber-500/40 text-amber-600",
+              "dark:bg-amber-500/15 dark:border-amber-500/25 dark:text-amber-400 dark:shadow-amber-500/10"
+            )}
+          >
+            <Flame className="h-8 w-8 fill-current" />
           </div>
-        </div>
-
-        {/* Rules Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-5">
-          {rules.map((rule, index) => (
-            <div
-              key={rule.number}
+          <div className="space-y-2">
+            <h1
               className={cn(
-                "group relative overflow-hidden rounded-2xl border border-slate-800/80 bg-gradient-to-br from-slate-900/90 to-slate-950 p-5 md:p-6 transition-all duration-300 hover:border-amber-500/30 hover:shadow-lg hover:shadow-amber-500/5",
-                index === 0 && "md:col-span-2"
+                "text-4xl md:text-5xl font-black tracking-tight",
+                "text-amber-800 dark:bg-gradient-to-r dark:from-amber-200 dark:via-yellow-100 dark:to-amber-300 dark:bg-clip-text dark:text-transparent"
               )}
             >
-              {/* Hover glow effect */}
-              <div className="absolute inset-0 bg-gradient-to-br from-amber-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+              WWHD
+            </h1>
+            <p className="text-lg md:text-xl font-medium text-slate-600 dark:text-slate-400">
+              What Would Harvey Do?
+            </p>
+            <p className="text-sm text-slate-500 dark:text-slate-500 max-w-md mx-auto leading-relaxed">
+              The rules that separate the exceptional from the average. Read them. Live them. Win.
+            </p>
+          </div>
+        </div>
+      </div>
 
-              <div className="relative z-10 flex gap-4">
-                {/* Number badge */}
-                <div className="flex-shrink-0">
-                  <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-400 font-black text-sm tracking-wide">
-                    {rule.number}
-                  </span>
-                </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-5">
+        {rules.map((rule, index) => (
+          <div
+            key={rule.number}
+            className={cn(
+              "group relative overflow-hidden rounded-2xl border p-5 md:p-6 transition-all duration-300",
+              "border-slate-200 bg-white hover:border-amber-300 hover:shadow-md",
+              "dark:border-slate-800/80 dark:bg-gradient-to-br dark:from-slate-900/90 dark:to-slate-950",
+              "dark:hover:border-amber-500/30 dark:hover:shadow-lg dark:hover:shadow-amber-500/5",
+              index === 0 && "md:col-span-2"
+            )}
+          >
+            <div className="absolute inset-0 bg-gradient-to-br from-amber-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
 
-                <div className="space-y-2 min-w-0">
-                  <h2 className="text-base md:text-lg font-bold text-white group-hover:text-amber-100 transition-colors">
-                    {rule.title}
-                  </h2>
-                  <p className="text-sm text-slate-400 leading-relaxed group-hover:text-slate-300 transition-colors">
-                    {rule.body}
-                  </p>
-                </div>
+            <div className="relative z-10 flex gap-4">
+              <div className="flex-shrink-0">
+                <span
+                  className={cn(
+                    "flex h-10 w-10 items-center justify-center rounded-xl border font-black text-sm tracking-wide",
+                    "bg-amber-100 border-amber-300 text-amber-800",
+                    "dark:bg-amber-500/10 dark:border-amber-500/20 dark:text-amber-400"
+                  )}
+                >
+                  {rule.number}
+                </span>
+              </div>
+              <div className="space-y-2 min-w-0">
+                <h2
+                  className={cn(
+                    "text-base md:text-lg font-bold transition-colors",
+                    "text-slate-900 group-hover:text-amber-900",
+                    "dark:text-white dark:group-hover:text-amber-100"
+                  )}
+                >
+                  {rule.title}
+                </h2>
+                <p
+                  className={cn(
+                    "text-sm leading-relaxed transition-colors",
+                    "text-slate-600 group-hover:text-slate-800",
+                    "dark:text-slate-400 dark:group-hover:text-slate-300"
+                  )}
+                >
+                  {rule.body}
+                </p>
               </div>
             </div>
-          ))}
-        </div>
+          </div>
+        ))}
+      </div>
 
-        {/* Bottom motivational CTA */}
-        <div className="text-center py-6">
-          <p className="text-xs font-bold uppercase tracking-[0.25em] text-amber-500/60">
-            Now go win.
-          </p>
-        </div>
-      </main>
-    </div>
+      <div className="text-center py-6">
+        <p className="text-xs font-bold uppercase tracking-[0.25em] text-amber-600/80 dark:text-amber-500/60">
+          Now go win.
+        </p>
+      </div>
+    </PageShell>
   );
 }
