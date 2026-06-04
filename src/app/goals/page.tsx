@@ -15,7 +15,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Target, Plus, Trash2, Pencil, X } from "lucide-react";
+import { Plus, Trash2, Pencil, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const emptyForm = (): Omit<LifeGoal, "id"> => ({
@@ -112,16 +112,7 @@ export default function GoalsPage() {
 
   return (
     <PageShell maxWidth="3xl" mainClassName="space-y-6">
-      <div className="bg-card rounded-2xl px-4 py-5 sm:px-6 shadow-sm border border-border flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <div className="h-11 w-11 rounded-xl bg-teal-50 dark:bg-teal-950/40 flex items-center justify-center">
-            <Target className="h-6 w-6 text-teal-600 dark:text-teal-400" />
-          </div>
-          <div>
-            <h1 className="text-xl sm:text-2xl font-bold">Goals</h1>
-            <p className="text-sm text-muted-foreground">Deadlines, targets, and auto progress from check-ins</p>
-          </div>
-        </div>
+      <div className="flex justify-start">
         <Button onClick={openNew} className="cursor-pointer bg-teal-500 hover:bg-teal-600 text-white">
           <Plus className="h-4 w-4 mr-2" />
           New goal

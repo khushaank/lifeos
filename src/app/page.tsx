@@ -16,14 +16,18 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   PlusCircle,
-  RefreshCw,
   ChevronRight,
   Activity,
   BookOpen,
+  Clipboard,
   Clock,
+  Dumbbell,
+  Filter,
   Flame,
   ListTodo,
   Briefcase,
+  Share2,
+  ExternalLink,
 } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
@@ -32,7 +36,6 @@ export default function DashboardPage() {
   const entries = useLifeStore((state) => state.entries);
   const tasks = useLifeStore((state) => state.tasks);
   const updateTask = useLifeStore((state) => state.updateTask);
-  const syncAll = useLifeStore((state) => state.syncAll);
   const isSyncing = useLifeStore((state) => state.isSyncing);
 
   useSyncLifeData();
@@ -48,6 +51,61 @@ export default function DashboardPage() {
 
   // Selfie modal state
   const [selfieModal, setSelfieModal] = useState<string | null>(null);
+  const [timelineWorkoutFilter, setTimelineWorkoutFilter] = useState<"all" | "workout" | "rest">("all");
+  const [timelineCommuteFilter, setTimelineCommuteFilter] = useState<"all" | "commute" | "no-commute">("all");
+  const [shareMenuOpen, setShareMenuOpen] = useState(false);
+  const [shareMessage, setShareMessage] = useState<string | null>(null);
+
+  const workoutDays = entries.filter((entry) => entry.workout_done).length;
+  const commuteDays = entries.filter((entry) => entry.commute_day).length;
+  const totalWorkoutMinutes = entries.reduce((sum, entry) => sum + (entry.exercise_duration || 0), 0);
+  const filteredTimeline = entries.filter((entry) => {
+    const workoutMatch =
+      timelineWorkoutFilter === "all" ||
+      (timelineWorkoutFilter === "workout" && entry.workout_done) ||
+      (timelineWorkoutFilter === "rest" && !entry.workout_done);
+    const commuteMatch =
+      timelineCommuteFilter === "all" ||
+      (timelineCommuteFilter === "commute" && entry.commute_day) ||
+      (timelineCommuteFilter === "no-commute" && !entry.commute_day);
+    return workoutMatch && commuteMatch;
+  });
+
+  const progressSummary = [
+    "North progress",
+    `${entries.length} check-ins logged`,
+    `${workoutDays} workout days`,
+    `${totalWorkoutMinutes} workout minutes`,
+    `${commuteDays} commute days`,
+    loggedToday ? "Today is logged" : "Today is not logged yet",
+  ].join("\n");
+
+  const shareProgress = async (mode: "summary" | "timeline") => {
+    const timelineText = filteredTimeline
+      .map((entry) => {
+        const date = new Date(`${entry.date}T12:00:00`).toLocaleDateString("en-US", {
+          month: "short",
+          day: "numeric",
+          year: "numeric",
+        });
+        return `${date}: score ${entry.life_score}, ${entry.workout_done ? `${entry.exercise_duration || 0} min ${entry.workout_type || "workout"}` : "no workout"}, ${entry.commute_day ? "commute" : "no commute"}`;
+      })
+      .join("\n");
+    const text = mode === "summary" ? progressSummary : `${progressSummary}\n\nTimeline\n${timelineText || "No matching entries."}`;
+
+    try {
+      if (mode === "summary" && navigator.share) {
+        await navigator.share({ title: "North progress", text });
+        setShareMessage("Shared progress.");
+      } else {
+        await navigator.clipboard.writeText(text);
+        setShareMessage(mode === "summary" ? "Copied progress summary." : "Copied filtered timeline.");
+      }
+      setShareMenuOpen(false);
+    } catch {
+      setShareMessage("Sharing was cancelled.");
+    }
+  };
 
   return (
     <PageShell mainClassName="space-y-6" className="pb-20">
@@ -88,10 +146,10 @@ export default function DashboardPage() {
                   "text-teal-700 dark:text-teal-400"
                 )}
               >
-                LifeOS Workspace
+                North Workspace
               </span>
             </div>
-            <h1 className="text-3xl font-black tracking-tight">LifeOS Dashboard</h1>
+            <h1 className="text-3xl font-black tracking-tight">North Dashboard</h1>
             <p className="text-sm font-medium text-slate-600 dark:text-slate-300">
               {new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })}
             </p>
@@ -112,20 +170,6 @@ export default function DashboardPage() {
                 KPI Board
               </Button>
             </Link>
-            <Button
-                onClick={() => syncAll({ force: true })}
-              disabled={isSyncing}
-              variant="outline"
-              size="sm"
-              className={cn(
-                "cursor-pointer backdrop-blur-sm text-xs font-bold h-9",
-                "border-slate-300 bg-white/80 text-slate-700 hover:bg-white hover:text-slate-900",
-                "dark:border-slate-700 dark:bg-slate-900/50 dark:text-slate-300 dark:hover:bg-slate-800/80 dark:hover:text-white"
-              )}
-            >
-              <RefreshCw className={`h-3.5 w-3.5 mr-2 ${isSyncing ? "animate-spin" : ""}`} />
-              Sync
-            </Button>
             <Link href={loggedToday ? `/check-in?date=${todayStr}` : "/check-in"}>
               <Button className="bg-teal-500 hover:bg-teal-600 text-white font-bold cursor-pointer shadow-md shadow-teal-500/20 text-xs h-9 px-4">
                 <PlusCircle className="mr-2 h-3.5 w-3.5" />
@@ -156,7 +200,7 @@ export default function DashboardPage() {
               <Flame className="h-8 w-8" />
             </div>
             <div className="text-center sm:text-left flex-1">
-              <h2 className="text-lg font-bold text-teal-800 dark:text-teal-200">Welcome to LifeOS!</h2>
+              <h2 className="text-lg font-bold text-teal-800 dark:text-teal-200">Welcome to North!</h2>
               <p className="text-sm text-teal-700 dark:text-teal-300/90 mt-1">
                 Start by logging your first daily check-in or adding private tasks in Planner.
               </p>
@@ -188,6 +232,197 @@ export default function DashboardPage() {
           </div>
           <TrendChartsLazy entries={entries} />
           <PersonalCoach entries={entries} />
+          <Card className="bg-card border-border shadow-sm rounded-2xl">
+            <CardHeader className="flex flex-col gap-3 pb-3 lg:flex-row lg:items-start lg:justify-between">
+              <div>
+                <CardTitle className="text-base font-bold flex items-center gap-2">
+                  <Dumbbell className="h-4 w-4 text-emerald-500" />
+                  Workout & Commute Timeline
+                </CardTitle>
+                <CardDescription className="text-xs">
+                  Full check-in history with workout pressure and commute filters
+                </CardDescription>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <Link href="/workout">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="h-9 border-slate-200 text-slate-600 cursor-pointer"
+                  >
+                    <ExternalLink className="h-3.5 w-3.5 mr-2" />
+                    Full Page
+                  </Button>
+                </Link>
+                <div className="relative">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShareMenuOpen((open) => !open)}
+                  className="h-9 border-slate-200 text-slate-600 cursor-pointer"
+                >
+                  <Share2 className="h-3.5 w-3.5 mr-2" />
+                  Share Progress
+                </Button>
+                {shareMenuOpen && (
+                  <div className="absolute right-0 top-10 z-20 w-56 rounded-xl border border-border bg-card p-2 shadow-xl">
+                    <button
+                      type="button"
+                      onClick={() => shareProgress("summary")}
+                      className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-xs font-semibold hover:bg-muted cursor-pointer"
+                    >
+                      <Share2 className="h-3.5 w-3.5 text-teal-500" />
+                      Share summary
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => shareProgress("timeline")}
+                      className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-xs font-semibold hover:bg-muted cursor-pointer"
+                    >
+                      <Clipboard className="h-3.5 w-3.5 text-sky-500" />
+                      Copy filtered timeline
+                    </button>
+                  </div>
+                )}
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-3 gap-2">
+                {[
+                  { label: "Check-ins", value: entries.length, className: "text-teal-600 bg-teal-50 border-teal-200 dark:bg-teal-950/40 dark:border-teal-900/50" },
+                  { label: "Workouts", value: workoutDays, className: "text-emerald-600 bg-emerald-50 border-emerald-200 dark:bg-emerald-950/40 dark:border-emerald-900/50" },
+                  { label: "Commutes", value: commuteDays, className: "text-sky-600 bg-sky-50 border-sky-200 dark:bg-sky-950/40 dark:border-sky-900/50" },
+                ].map((stat) => (
+                  <div key={stat.label} className={cn("rounded-xl border px-3 py-2", stat.className)}>
+                    <p className="text-[10px] font-bold uppercase tracking-wider">{stat.label}</p>
+                    <p className="mt-0.5 text-xl font-black">{stat.value}</p>
+                  </div>
+                ))}
+              </div>
+
+              <div className="flex flex-col gap-2 rounded-xl border border-border bg-muted/30 p-3">
+                <div className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+                  <Filter className="h-3.5 w-3.5" />
+                  Filters
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {[
+                    { value: "all", label: "All workout" },
+                    { value: "workout", label: "Worked out" },
+                    { value: "rest", label: "No workout" },
+                  ].map((item) => (
+                    <button
+                      key={item.value}
+                      type="button"
+                      onClick={() => setTimelineWorkoutFilter(item.value as typeof timelineWorkoutFilter)}
+                      className={cn(
+                        "h-8 rounded-lg border px-3 text-xs font-semibold cursor-pointer transition-colors",
+                        timelineWorkoutFilter === item.value
+                          ? "border-emerald-300 bg-emerald-50 text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300"
+                          : "border-border bg-card text-muted-foreground hover:text-foreground"
+                      )}
+                    >
+                      {item.label}
+                    </button>
+                  ))}
+                  {[
+                    { value: "all", label: "All commute" },
+                    { value: "commute", label: "Commute" },
+                    { value: "no-commute", label: "No commute" },
+                  ].map((item) => (
+                    <button
+                      key={item.value}
+                      type="button"
+                      onClick={() => setTimelineCommuteFilter(item.value as typeof timelineCommuteFilter)}
+                      className={cn(
+                        "h-8 rounded-lg border px-3 text-xs font-semibold cursor-pointer transition-colors",
+                        timelineCommuteFilter === item.value
+                          ? "border-sky-300 bg-sky-50 text-sky-700 dark:border-sky-800 dark:bg-sky-950/40 dark:text-sky-300"
+                          : "border-border bg-card text-muted-foreground hover:text-foreground"
+                      )}
+                    >
+                      {item.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {shareMessage && (
+                <p className="rounded-lg border border-teal-200 bg-teal-50 px-3 py-2 text-xs font-semibold text-teal-700 dark:border-teal-900/50 dark:bg-teal-950/40 dark:text-teal-300">
+                  {shareMessage}
+                </p>
+              )}
+
+              <div className="max-h-[430px] overflow-y-auto pr-1">
+                {filteredTimeline.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-8 text-center text-muted-foreground">
+                    <Activity className="h-7 w-7 mb-2 opacity-40" />
+                    <p className="text-xs font-semibold">No entries match these filters.</p>
+                  </div>
+                ) : (
+                  <div className="relative space-y-3">
+                    <div className="absolute bottom-3 left-[0.9rem] top-3 w-px bg-border" />
+                    {filteredTimeline.map((entry) => (
+                      <div key={entry.date} className="relative flex gap-3 rounded-xl border border-border bg-muted/20 px-3 py-3">
+                        <div
+                          className={cn(
+                            "relative z-10 mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full border bg-card",
+                            entry.workout_done ? "border-emerald-300 text-emerald-600" : "border-slate-300 text-slate-400"
+                          )}
+                        >
+                          {entry.workout_done ? <Dumbbell className="h-3.5 w-3.5" /> : <Activity className="h-3.5 w-3.5" />}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="text-sm font-bold">
+                              {new Date(`${entry.date}T12:00:00`).toLocaleDateString("en-US", {
+                                weekday: "short",
+                                month: "short",
+                                day: "numeric",
+                              })}
+                            </span>
+                            <span className="rounded-full border border-teal-200 bg-teal-50 px-2 py-0.5 text-[10px] font-bold text-teal-600 dark:border-teal-900/50 dark:bg-teal-950/40 dark:text-teal-300">
+                              Score {entry.life_score}
+                            </span>
+                            <span
+                              className={cn(
+                                "rounded-full border px-2 py-0.5 text-[10px] font-bold",
+                                entry.commute_day
+                                  ? "border-sky-200 bg-sky-50 text-sky-600 dark:border-sky-900/50 dark:bg-sky-950/40 dark:text-sky-300"
+                                  : "border-slate-200 bg-slate-50 text-slate-500 dark:border-slate-800 dark:bg-slate-900/40"
+                              )}
+                            >
+                              {entry.commute_day ? "Commute" : "No commute"}
+                            </span>
+                          </div>
+                          <p className="mt-1 text-xs text-muted-foreground">
+                            {entry.workout_done
+                              ? `${entry.exercise_duration || 0} min ${entry.workout_type || "workout"}`
+                              : "No workout logged"}
+                            {" - "}
+                            Mood {entry.mood_label} - Stress {entry.stress_level || 0}/10
+                          </p>
+                        </div>
+                        {entry.workout_selfie && (
+                          <button
+                            type="button"
+                            onClick={() => setSelfieModal(entry.workout_selfie!)}
+                            className="h-10 w-10 shrink-0 overflow-hidden rounded-lg border-2 border-emerald-200 cursor-pointer"
+                            title="View workout selfie"
+                          >
+                            <img src={entry.workout_selfie} alt="Workout selfie" className="h-full w-full object-cover" />
+                          </button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
         </>
       )}
 

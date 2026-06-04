@@ -79,9 +79,9 @@ export default function OpportunitiesPage() {
 
   return (
     <PageShell maxWidth="3xl" mainClassName="space-y-6">
-      <div className="rounded-2xl border border-border bg-card px-4 py-5 sm:px-6 shadow-sm">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-start gap-3">
+      <div className="space-y-3">
+        <div className="flex justify-start">
+          <div className="hidden">
             <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-amber-50 text-amber-600 dark:bg-amber-950/40 dark:text-amber-400">
               <Target className="h-6 w-6" />
             </div>
@@ -98,7 +98,7 @@ export default function OpportunitiesPage() {
           </Button>
         </div>
         <Input
-          className="mt-4 bg-muted/40 border-border"
+          className="bg-muted/40 border-border"
           placeholder="Search..."
           value={filter}
           onChange={(e) => setFilter(e.target.value)}

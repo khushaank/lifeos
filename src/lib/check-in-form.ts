@@ -10,6 +10,7 @@ export interface CheckInFormState {
   stressLevel: number;
   waterIntake: number;
   junkFood: boolean;
+  commuteDay: boolean;
   socialInteraction: number;
   workoutDone: boolean;
   exerciseDuration: number;
@@ -33,6 +34,7 @@ export const DEFAULT_CHECK_IN_FORM: CheckInFormState = {
   stressLevel: 4,
   waterIntake: 2000,
   junkFood: false,
+  commuteDay: false,
   socialInteraction: 5,
   workoutDone: false,
   exerciseDuration: 30,
@@ -57,6 +59,7 @@ export function entryToCheckInForm(entry: LogEntry): CheckInFormState {
     stressLevel: entry.stress_level ?? DEFAULT_CHECK_IN_FORM.stressLevel,
     waterIntake: entry.water_intake ?? DEFAULT_CHECK_IN_FORM.waterIntake,
     junkFood: Boolean(entry.junk_food),
+    commuteDay: Boolean(entry.commute_day),
     socialInteraction: entry.social_interaction ?? DEFAULT_CHECK_IN_FORM.socialInteraction,
     workoutDone: Boolean(entry.workout_done),
     exerciseDuration: entry.exercise_duration ?? DEFAULT_CHECK_IN_FORM.exerciseDuration,

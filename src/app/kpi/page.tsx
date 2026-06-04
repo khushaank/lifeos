@@ -21,8 +21,8 @@ export default function KpiPage() {
 
   return (
     <PageShell maxWidth="7xl" mainClassName="space-y-6">
-      <div className="bg-card rounded-2xl px-4 py-5 sm:px-6 shadow-sm border border-border flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div className="flex items-center gap-3">
+      <div className="flex justify-start">
+        <div className="hidden">
           <div className="h-11 w-11 rounded-xl bg-slate-900 dark:bg-slate-800 flex items-center justify-center">
             <Briefcase className="h-6 w-6 text-teal-400" />
           </div>

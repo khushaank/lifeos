@@ -11,18 +11,39 @@ import { useLifeStore, type LifeTask } from "@/store/useLifeStore";
 import {
   connectGoogle,
   disconnectGoogle,
+  getGoogleConnectionSnapshot,
   hasGoogleToken,
+  hasSavedGoogleConnection,
   syncTaskToGoogle,
   fetchGoogleCalendarEvents,
   fetchGoogleTasks,
   type GoogleCalendarEvent,
   type GoogleTaskItem,
 } from "@/lib/google";
-import { CalendarPlus, CheckCircle2, Circle, Link2, ListTodo, Plus, Trash2, Calendar, CheckSquare, Loader2, X } from "lucide-react";
+import { CalendarPlus, CheckCircle2, Circle, Link2, Plus, Trash2, Calendar, CheckSquare, Loader2, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const priorities: LifeTask["priority"][] = ["Medium", "High", "Low"];
 const areas: LifeTask["area"][] = ["Work", "Health", "Learning", "Personal"];
+
+const padDatePart = (value: number) => String(value).padStart(2, "0");
+
+function toDateInput(value?: string) {
+  if (!value) return new Date().toISOString().split("T")[0];
+  if (!value.includes("T")) return value.slice(0, 10);
+  const date = new Date(value);
+  return `${date.getFullYear()}-${padDatePart(date.getMonth() + 1)}-${padDatePart(date.getDate())}`;
+}
+
+function toTimeInput(value?: string) {
+  if (!value || !value.includes("T")) return undefined;
+  const date = new Date(value);
+  return `${padDatePart(date.getHours())}:${padDatePart(date.getMinutes())}`;
+}
+
+function taskMatchKey(task: Pick<LifeTask, "title" | "due_date" | "due_time">) {
+  return `${task.title.trim().toLowerCase()}|${task.due_date}|${task.due_time || ""}`;
+}
 
 export default function PlannerPage() {
   const tasks = useLifeStore((state) => state.tasks);
@@ -38,7 +59,7 @@ export default function PlannerPage() {
   const [priority, setPriority] = useState<LifeTask["priority"]>("Medium");
   const [area, setArea] = useState<LifeTask["area"]>("Work");
   const [notes, setNotes] = useState("");
-  const [googleConnected, setGoogleConnected] = useState(hasGoogleToken());
+  const [googleConnected, setGoogleConnected] = useState(() => getGoogleConnectionSnapshot().connected);
   const [syncingId, setSyncingId] = useState<string | null>(null);
   const [syncStatus, setSyncStatus] = useState<string | null>(null);
 
@@ -50,6 +71,62 @@ export default function PlannerPage() {
   const [googleTasks, setGoogleTasks] = useState<GoogleTaskItem[]>([]);
   const [googleFeedPeriod, setGoogleFeedPeriod] = useState<"Today" | "7 Days" | "30 Days">("7 Days");
   const [fetchingGoogleFeed, setFetchingGoogleFeed] = useState(false);
+
+  const importGoogleFeedItems = async (events: GoogleCalendarEvent[], gTasks: GoogleTaskItem[]) => {
+    const knownEventIds = new Set(tasks.map((task) => task.google_event_id).filter(Boolean));
+    const knownTaskIds = new Set(tasks.map((task) => task.google_task_id).filter(Boolean));
+    const knownKeys = new Set(tasks.map(taskMatchKey));
+    let importedCount = 0;
+
+    for (const googleTask of gTasks) {
+      const dueDate = toDateInput(googleTask.due);
+      const importedTask: Omit<LifeTask, "id"> = {
+        title: googleTask.title?.trim() || "Untitled Google Task",
+        due_date: dueDate,
+        notes: [googleTask.notes, "Imported from Google Tasks"].filter(Boolean).join("\n"),
+        priority: "Medium",
+        area: "Work",
+        status: googleTask.status === "completed" ? "Done" : "Todo",
+        google_task_id: googleTask.id,
+        google_synced_at: new Date().toISOString(),
+      };
+
+      if (knownTaskIds.has(googleTask.id) || knownKeys.has(taskMatchKey(importedTask))) continue;
+      const savedTask = await addTask(importedTask);
+      if (savedTask) {
+        importedCount += 1;
+        knownTaskIds.add(googleTask.id);
+        knownKeys.add(taskMatchKey(savedTask));
+      }
+    }
+
+    for (const event of events) {
+      const startsAt = event.start.dateTime || event.start.date;
+      const importedTask: Omit<LifeTask, "id"> = {
+        title: event.summary?.trim() || "Untitled Google Event",
+        due_date: toDateInput(startsAt),
+        due_time: toTimeInput(event.start.dateTime),
+        notes: [event.description, "Imported from Google Calendar"].filter(Boolean).join("\n"),
+        priority: "Medium",
+        area: "Work",
+        status: "Todo",
+        google_event_id: event.id,
+        google_synced_at: new Date().toISOString(),
+      };
+
+      if (knownEventIds.has(event.id) || knownKeys.has(taskMatchKey(importedTask))) continue;
+      const savedTask = await addTask(importedTask);
+      if (savedTask) {
+        importedCount += 1;
+        knownEventIds.add(event.id);
+        knownKeys.add(taskMatchKey(savedTask));
+      }
+    }
+
+    if (importedCount > 0) {
+      setSyncStatus(`Imported ${importedCount} item${importedCount === 1 ? "" : "s"} from Google into North.`);
+    }
+  };
 
   const getPeriodDates = (period: string) => {
     const start = new Date();
@@ -88,20 +165,29 @@ export default function PlannerPage() {
         return new Date(t.due).getTime() <= endLimit;
       });
       setGoogleTasks(filteredTasks);
+      await importGoogleFeedItems(events, filteredTasks);
     } catch (err) {
       console.error("Failed to load Google Feed:", err);
+      if (!hasGoogleToken() && hasSavedGoogleConnection()) {
+        setSyncStatus("Google access needs a quick refresh. Your client ID is still saved.");
+      }
     } finally {
       setFetchingGoogleFeed(false);
     }
   };
 
   useEffect(() => {
-    if (googleConnected) {
-      loadGoogleFeed();
-    } else {
-      setGoogleEvents([]);
-      setGoogleTasks([]);
-    }
+    const timeout = window.setTimeout(() => {
+      if (googleConnected) {
+        void loadGoogleFeed();
+      } else {
+        setGoogleEvents([]);
+        setGoogleTasks([]);
+      }
+    }, 0);
+
+    return () => window.clearTimeout(timeout);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- refresh Google feed only when connection or visible period changes
   }, [googleConnected, googleFeedPeriod]);
 
   const sortedTasks = useMemo(
@@ -117,11 +203,11 @@ export default function PlannerPage() {
   const activeTasks = sortedTasks.filter((task) => task.status !== "Done");
   const doneTasks = sortedTasks.filter((task) => task.status === "Done");
 
-  const handleAdd = (event: React.FormEvent) => {
+  const handleAdd = async (event: React.FormEvent) => {
     event.preventDefault();
     if (!title.trim()) return;
 
-    addTask({
+    const savedTask = await addTask({
       title: title.trim(),
       due_date: dueDate,
       due_time: dueTime,
@@ -133,6 +219,11 @@ export default function PlannerPage() {
     setTitle("");
     setNotes("");
     setIsAddModalOpen(false);
+
+    if (savedTask && googleConnected) {
+      await handleSyncTask(savedTask);
+      await loadGoogleFeed();
+    }
   };
 
   const handleConnectGoogle = async () => {
@@ -140,7 +231,7 @@ export default function PlannerPage() {
       setSyncStatus(null);
       await connectGoogle();
       setGoogleConnected(true);
-      setSyncStatus("Google connected. You can now sync tasks directly.");
+      setSyncStatus("Google connected and saved for this browser.");
     } catch (error) {
       setSyncStatus(error instanceof Error ? error.message : "Google connection failed.");
     }
@@ -149,7 +240,7 @@ export default function PlannerPage() {
   const handleDisconnectGoogle = async () => {
     await disconnectGoogle();
     setGoogleConnected(false);
-    setSyncStatus("Google disconnected for this browser session.");
+    setSyncStatus("Google disconnected for this browser.");
   };
 
   const handleSyncTask = async (task: LifeTask) => {
@@ -157,7 +248,7 @@ export default function PlannerPage() {
       setSyncingId(task.id);
       setSyncStatus(null);
       const updates = await syncTaskToGoogle(task);
-      updateTask(task.id, updates);
+      await updateTask(task.id, updates);
       setGoogleConnected(true);
       setSyncStatus(`Synced "${task.title}" to Google Calendar and Google Tasks.`);
     } catch (error) {
@@ -177,24 +268,13 @@ export default function PlannerPage() {
     <div
       className={cn(
         "min-h-screen bg-slate-50 font-sans pb-24 transition-all duration-300 ease-in-out",
-        isSidebarCollapsed ? "md:pl-[4.25rem]" : "md:pl-56"
+        isSidebarCollapsed ? "md:pl-20" : "md:pl-56"
       )}
     >
       <Navigation />
 
       <main className="mx-auto max-w-7xl px-4 py-6 md:px-8 space-y-6">
-        {/* Header Block */}
-        <div className="flex flex-col gap-4 bg-white rounded-2xl px-6 py-5 shadow-sm border border-slate-100 lg:flex-row lg:items-center lg:justify-between">
-          <div className="flex items-center gap-3">
-            <div className="h-11 w-11 rounded-xl bg-sky-50 ring-1 ring-sky-200 flex items-center justify-center">
-              <ListTodo className="h-6 w-6 text-sky-500" />
-            </div>
-            <div>
-              <h1 className="text-2xl font-bold text-slate-800">Planner</h1>
-              <p className="text-sm text-slate-500">Tasks, routines, and Google-ready calendar blocks</p>
-            </div>
-          </div>
-          <div className="flex flex-wrap gap-2.5">
+        <div className="flex flex-wrap gap-2.5">
             <Button
               onClick={() => setIsAddModalOpen(true)}
               className="bg-sky-500 hover:bg-sky-600 text-white font-bold cursor-pointer h-10 shadow-md shadow-sky-500/10 px-5"
@@ -215,7 +295,6 @@ export default function PlannerPage() {
               <CalendarPlus className="mr-2 h-4 w-4" />
               Sync Open Tasks
             </Button>
-          </div>
         </div>
 
         {syncStatus && <div className="rounded-xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-700">{syncStatus}</div>}

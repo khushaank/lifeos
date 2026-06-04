@@ -29,7 +29,7 @@ export function PageShell({
     <div
       className={cn(
         "min-h-screen bg-background text-foreground font-sans pb-[calc(4.5rem+env(safe-area-inset-bottom,0px))] md:pb-8 transition-all duration-300 ease-in-out",
-        isSidebarCollapsed ? "md:pl-[4.25rem]" : "md:pl-56",
+        isSidebarCollapsed ? "md:pl-20" : "md:pl-56",
         className
       )}
     >

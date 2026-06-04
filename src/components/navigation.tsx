@@ -11,8 +11,7 @@ import {
   Store,
   LogOut,
   CalendarDays,
-  Menu,
-  Flame,
+  Dumbbell,
   Timer,
   Scale,
   Target,
@@ -22,6 +21,8 @@ import {
   Search,
   ChevronDown,
   BookOpen,
+  PanelLeftClose,
+  PanelLeftOpen,
 } from "lucide-react";
 import { CommandPaletteTrigger } from "@/components/command-palette";
 import { useLifeStore } from "@/store/useLifeStore";
@@ -87,7 +88,6 @@ export function Navigation() {
   const isSidebarCollapsed = useLifeStore((state) => state.isSidebarCollapsed);
   const setSidebarCollapsed = useLifeStore((state) => state.setSidebarCollapsed);
 
-  const [isHovered, setIsHovered] = useState(false);
   const [mobileMoreOpen, setMobileMoreOpen] = useState(false);
   const [logsOpen, setLogsOpen] = useState(false);
 
@@ -119,13 +119,14 @@ export function Navigation() {
   const mainNav: NavItem[] = [...coreNav, kpiNav, goalsNav];
 
   const logsNav: NavItem[] = [
+    { name: "Workout", shortName: "Workout", href: "/workout", icon: Dumbbell },
     { name: "Decision Journal", shortName: "Journal", href: "/journal", icon: Scale },
     { name: "Missed Opportunities", shortName: "Missed", href: "/opportunities", icon: Target },
     { name: "Movies", shortName: "Movies", href: "/movies", icon: Film },
     { name: "Books Library", shortName: "Books", href: "/books", icon: BookOpen },
   ];
 
-  const otherNav: NavItem[] = [{ name: "WWHD", shortName: "WWHD", href: "/wwhd", icon: Flame }];
+  const otherNav: NavItem[] = [];
 
   const allItems = [...mainNav, ...logsNav, ...otherNav];
   const mobilePrimary = coreNav;
@@ -137,7 +138,7 @@ export function Navigation() {
     router.push("/login");
   };
 
-  const isVisuallyExpanded = !isSidebarCollapsed || isHovered;
+  const isVisuallyExpanded = !isSidebarCollapsed;
 
   const isActive = (href: string) =>
     pathname === href || (href !== "/" && pathname?.startsWith(href));
@@ -147,22 +148,25 @@ export function Navigation() {
   return (
     <>
       <aside
-        onMouseEnter={() => setIsHovered(true)}
-        onMouseLeave={() => setIsHovered(false)}
         className={cn(
-          "fixed inset-y-0 left-0 hidden flex-col border-r border-border bg-card z-30 transition-all duration-300 ease-in-out md:flex overflow-hidden",
-          isVisuallyExpanded ? "w-56 px-3 py-4" : "w-[4.25rem] px-2 py-4"
+          "fixed inset-y-0 left-0 hidden flex-col border-r border-border bg-card/95 backdrop-blur z-30 transition-[width,padding] duration-300 ease-in-out md:flex overflow-hidden",
+          isVisuallyExpanded ? "w-56 px-3 py-4" : "w-20 px-3 py-4"
         )}
       >
         <div className={cn("flex items-center gap-2 mb-3 shrink-0", !isVisuallyExpanded && "justify-center")}>
           <button
             onClick={() => setSidebarCollapsed(!isSidebarCollapsed)}
-            className="flex h-8 w-8 items-center justify-center rounded-lg bg-teal-50 hover:bg-teal-100 text-teal-600 dark:bg-teal-950/50 dark:hover:bg-teal-900/50 dark:text-teal-400 cursor-pointer shrink-0"
+            className="flex h-9 w-9 items-center justify-center rounded-xl bg-teal-50 hover:bg-teal-100 text-teal-700 ring-1 ring-teal-100 dark:bg-teal-950/50 dark:hover:bg-teal-900/50 dark:text-teal-400 dark:ring-teal-900/50 cursor-pointer shrink-0 transition-colors"
             title={isSidebarCollapsed ? "Expand" : "Collapse"}
+            aria-label={isSidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
           >
-            <Menu className="h-4 w-4" />
+            {isSidebarCollapsed ? <PanelLeftOpen className="h-4 w-4" /> : <PanelLeftClose className="h-4 w-4" />}
           </button>
-          {isVisuallyExpanded && <span className="text-lg font-bold tracking-tight truncate">LifeOS</span>}
+          {isVisuallyExpanded ? (
+            <span className="text-lg font-black tracking-tight truncate">North</span>
+          ) : (
+            <span className="sr-only">North</span>
+          )}
         </div>
 
         {isVisuallyExpanded ? (

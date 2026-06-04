@@ -25,6 +25,7 @@ export interface LogEntry {
   stress_level?: number;
   water_intake?: number;
   junk_food?: boolean;
+  commute_day?: boolean;
   social_interaction?: number;
   notes?: string;
   wins?: string;
@@ -198,7 +199,7 @@ interface LifeStore {
   fetchEntries: () => Promise<void>;
   addOrUpdateEntry: (entry: LogEntry) => Promise<boolean>;
   deleteEntry: (date: string) => Promise<boolean>;
-  addTask: (task: Omit<LifeTask, "id">) => Promise<void>;
+  addTask: (task: Omit<LifeTask, "id">) => Promise<LifeTask | null>;
   updateTask: (id: string, updates: Partial<LifeTask>) => Promise<void>;
   deleteTask: (id: string) => Promise<void>;
   addGoal: (goal: Omit<LifeGoal, "id">) => Promise<void>;
@@ -493,8 +494,10 @@ export const useLifeStore = create<LifeStore>()(
             throw new Error("Failed to add task");
           }
           set({ tasks: [newTask, ...get().tasks] });
+          return newTask;
         } catch (err) {
           console.error("Add task sync error:", err);
+          return null;
         }
       },
 

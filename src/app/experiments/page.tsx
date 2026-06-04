@@ -91,7 +91,7 @@ export default function ExperimentsPage() {
 
   return (
     <PageShell maxWidth="5xl" mainClassName="space-y-8">
-      <div className="bg-card rounded-2xl px-4 py-5 sm:px-6 shadow-sm border border-border">
+      <div className="hidden">
         <div className="flex items-center gap-3">
           <div className="h-11 w-11 rounded-xl bg-violet-50 dark:bg-violet-950/40 flex items-center justify-center">
             <Store className="h-6 w-6 text-violet-600 dark:text-violet-400" />

@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Film, Plus, Star, Trash2, X } from "lucide-react";
+import { Plus, Star, Trash2, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 function todayString() {
@@ -76,19 +76,7 @@ export default function MoviesPage() {
 
   return (
     <PageShell maxWidth="3xl" mainClassName="space-y-6">
-      <div className="rounded-2xl border border-border bg-card px-4 py-5 sm:px-6 shadow-sm">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-start gap-3">
-            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-violet-50 text-violet-600 dark:bg-violet-950/40 dark:text-violet-400">
-              <Film className="h-6 w-6" />
-            </div>
-            <div>
-              <h1 className="text-xl sm:text-2xl font-bold">Movies</h1>
-              <p className="text-sm text-muted-foreground">
-                Track what you have seen and your personal ratings.
-              </p>
-            </div>
-          </div>
+      <div className="flex justify-start">
           <Button
             onClick={() => {
               setEditingId(null);
@@ -100,7 +88,6 @@ export default function MoviesPage() {
             <Plus className="h-4 w-4 mr-2" />
             Add movie
           </Button>
-        </div>
       </div>
 
       {best && (

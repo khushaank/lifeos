@@ -98,19 +98,8 @@ export default function JournalPage() {
 
   return (
     <PageShell maxWidth="3xl" mainClassName="space-y-6">
-      <div className="rounded-2xl border border-border bg-card px-4 py-5 sm:px-6 shadow-sm">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-start gap-3 min-w-0">
-            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-teal-50 text-teal-600 dark:bg-teal-950/50 dark:text-teal-400">
-              <Scale className="h-6 w-6" />
-            </div>
-            <div className="min-w-0">
-              <h1 className="text-xl sm:text-2xl font-bold">Decision Journal</h1>
-              <p className="text-sm text-muted-foreground">
-                Log choices, reasoning, and outcomes to learn from past decisions.
-              </p>
-            </div>
-          </div>
+      <div className="space-y-3">
+        <div className="flex justify-start">
           <Button onClick={openNew} className="bg-teal-500 hover:bg-teal-600 text-white w-full sm:w-auto cursor-pointer shrink-0">
             <Plus className="h-4 w-4 mr-2" />
             New decision
@@ -120,7 +109,7 @@ export default function JournalPage() {
           placeholder="Search decisions..."
           value={filter}
           onChange={(e) => setFilter(e.target.value)}
-          className="mt-4 bg-muted/40 border-border"
+          className="bg-muted/40 border-border"
         />
       </div>
 

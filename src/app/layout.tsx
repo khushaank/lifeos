@@ -4,13 +4,13 @@ import { PwaRegister } from "@/components/pwa-register";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "LifeOS - Personal Performance Analytics",
+  title: "North - Personal Performance Analytics",
   description: "Your private, single-tenant health, habit, productivity, and life metrics system",
-  applicationName: "LifeOS",
+  applicationName: "North",
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "LifeOS",
+    title: "North",
   },
   formatDetection: {
     telephone: false,

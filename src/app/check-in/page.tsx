@@ -12,7 +12,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { PageShell } from "@/components/page-shell";
-import { Save, Smile, Moon, Brain, Flame, Trash2, Activity, CheckCircle2, Camera, X as XIcon } from "lucide-react";
+import { Save, Smile, Moon, Brain, Flame, Trash2, Activity, CheckCircle2, Camera, X as XIcon, Car } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { compressImage } from "@/lib/image";
 
@@ -62,6 +62,7 @@ function applyFormState(
     setStressLevel: (v: number) => void;
     setWaterIntake: (v: number) => void;
     setJunkFood: (v: boolean) => void;
+    setCommuteDay: (v: boolean) => void;
     setSocialInteraction: (v: number) => void;
     setWorkoutDone: (v: boolean) => void;
     setExerciseDuration: (v: number) => void;
@@ -85,6 +86,7 @@ function applyFormState(
   setters.setStressLevel(form.stressLevel);
   setters.setWaterIntake(form.waterIntake);
   setters.setJunkFood(form.junkFood);
+  setters.setCommuteDay(form.commuteDay);
   setters.setSocialInteraction(form.socialInteraction);
   setters.setWorkoutDone(form.workoutDone);
   setters.setExerciseDuration(form.exerciseDuration);
@@ -119,6 +121,7 @@ export default function CheckInPage() {
   const [stressLevel, setStressLevel] = useState(DEFAULT_CHECK_IN_FORM.stressLevel);
   const [waterIntake, setWaterIntake] = useState(DEFAULT_CHECK_IN_FORM.waterIntake);
   const [junkFood, setJunkFood] = useState(DEFAULT_CHECK_IN_FORM.junkFood);
+  const [commuteDay, setCommuteDay] = useState(DEFAULT_CHECK_IN_FORM.commuteDay);
   const [socialInteraction, setSocialInteraction] = useState(DEFAULT_CHECK_IN_FORM.socialInteraction);
   const [workoutDone, setWorkoutDone] = useState(DEFAULT_CHECK_IN_FORM.workoutDone);
   const [exerciseDuration, setExerciseDuration] = useState(DEFAULT_CHECK_IN_FORM.exerciseDuration);
@@ -147,6 +150,7 @@ export default function CheckInPage() {
     setStressLevel,
     setWaterIntake,
     setJunkFood,
+    setCommuteDay,
     setSocialInteraction,
     setWorkoutDone,
     setExerciseDuration,
@@ -183,6 +187,7 @@ export default function CheckInPage() {
     const entry = entries.find((e) => e.date === targetDate);
     if (entry) {
       applyFormState(formSetters, entryToCheckInForm(entry));
+      setWorkoutSelfie(entry.workout_selfie || "");
       if (entry.book_id) {
         setBookId(entry.book_id);
         setIsCustom(false);
@@ -206,7 +211,7 @@ export default function CheckInPage() {
         setIsCustom(false);
       }
     }
-    setWorkoutSelfie("");
+    if (!entry) setWorkoutSelfie("");
     setSaveMessage(null);
   };
 
@@ -238,6 +243,7 @@ export default function CheckInPage() {
       stress_level: stressLevel,
       water_intake: waterIntake,
       junk_food: junkFood,
+      commute_day: commuteDay,
       social_interaction: socialInteraction,
       workout_done: workoutDone,
       exercise_duration: workoutDone ? exerciseDuration : 0,
@@ -295,46 +301,32 @@ export default function CheckInPage() {
 
   const lifeScore = calculateLifeScore({ moodScore, sleepQuality, focusLevel, productivityLevel, stressLevel, workoutDone });
 
-  const dateLabel = new Date(`${date}T12:00:00`).toLocaleDateString("en-US", {
-    weekday: "long",
-    month: "long",
-    day: "numeric",
-  });
-
   return (
     <PageShell maxWidth="3xl">
-        <div className="bg-card rounded-2xl px-4 py-5 sm:px-6 shadow-sm border border-border mb-6">
-          <div className="flex flex-col gap-4">
-            <div className="min-w-0">
-              <h1 className="text-xl sm:text-2xl font-bold">
-                {isEditing ? "Update Check-In" : "Daily Check-In"}
-              </h1>
-              <p className="text-sm text-muted-foreground">{dateLabel}</p>
-            </div>
-            <div className="flex flex-col xs:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
-              <Input
-                type="date"
-                value={date}
-                max={todayString()}
-                onChange={(e) => setDate(e.target.value)}
-                className="bg-background border-border h-10 text-sm w-full sm:w-auto cursor-pointer"
-              />
-              {isEditing && (
-                <Button
-                  variant="outline"
-                  onClick={handleDelete}
-                  className="border-rose-200 text-rose-600 hover:bg-rose-50 dark:border-rose-900/50 cursor-pointer w-full sm:w-auto"
-                >
-                  <Trash2 className="h-3.5 w-3.5 mr-1" />
-                  Delete
-                </Button>
-              )}
-            </div>
+        <div className="mb-6 space-y-3">
+          <div className="flex flex-col xs:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
+            <Input
+              type="date"
+              value={date}
+              max={todayString()}
+              onChange={(e) => setDate(e.target.value)}
+              className="bg-background border-border h-10 text-sm w-full sm:w-auto cursor-pointer"
+            />
+            {isEditing && (
+              <Button
+                variant="outline"
+                onClick={handleDelete}
+                className="border-rose-200 text-rose-600 hover:bg-rose-50 dark:border-rose-900/50 cursor-pointer w-full sm:w-auto"
+              >
+                <Trash2 className="h-3.5 w-3.5 mr-1" />
+                Delete
+              </Button>
+            )}
           </div>
 
           <div
             className={cn(
-              "mt-4 flex flex-col sm:flex-row sm:items-center gap-3 rounded-xl px-4 py-3 border",
+              "flex flex-col sm:flex-row sm:items-center gap-3 rounded-xl px-4 py-3 border",
               isEditing
                 ? "bg-emerald-50 border-emerald-200 dark:bg-emerald-950/30 dark:border-emerald-800"
                 : "bg-amber-50 border-amber-200 dark:bg-amber-950/30 dark:border-amber-800"
@@ -571,13 +563,14 @@ export default function CheckInPage() {
                       className="flex items-center gap-2 px-4 py-2.5 rounded-xl border-2 border-dashed border-slate-200 hover:border-emerald-400 text-slate-500 hover:text-emerald-600 text-xs font-bold cursor-pointer transition-colors"
                     >
                       <Camera className="h-4 w-4" />
-                      Upload selfie
+                      Open camera
                     </button>
                   )}
                   <input
                     ref={selfieInputRef}
                     type="file"
                     accept="image/*"
+                    capture="user"
                     className="hidden"
                     onChange={async (e) => {
                       const file = e.target.files?.[0];
@@ -599,6 +592,17 @@ export default function CheckInPage() {
                   <p className="text-xs text-slate-400">Unhealthy nutrition today</p>
                 </div>
                 <Switch checked={junkFood} onCheckedChange={setJunkFood} className="data-[state=checked]:bg-rose-500" />
+              </div>
+
+              <div className="flex items-center justify-between rounded-xl bg-slate-50 border border-slate-100 px-4 py-3">
+                <div className="flex items-center gap-3">
+                  <Car className="h-5 w-5 text-sky-500" />
+                  <div>
+                    <p className="text-sm font-semibold text-slate-700">Commute Day</p>
+                    <p className="text-xs text-slate-400">Mark if you travelled for a commute</p>
+                  </div>
+                </div>
+                <Switch checked={commuteDay} onCheckedChange={setCommuteDay} className="data-[state=checked]:bg-sky-500" />
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

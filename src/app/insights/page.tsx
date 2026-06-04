@@ -156,18 +156,6 @@ export default function InsightsPage() {
 
   return (
     <PageShell maxWidth="7xl" mainClassName="space-y-6">
-      <div className="bg-card rounded-2xl px-4 py-5 sm:px-6 shadow-sm border border-border">
-        <div className="flex items-center gap-3">
-          <div className="h-11 w-11 rounded-xl bg-violet-50 dark:bg-violet-950/40 ring-1 ring-violet-200 dark:ring-violet-800 flex items-center justify-center">
-            <Brain className="h-6 w-6 text-violet-500" />
-          </div>
-          <div>
-            <h1 className="text-xl sm:text-2xl font-bold">Insights</h1>
-            <p className="text-sm text-muted-foreground">Heatmap, patterns, and correlations</p>
-          </div>
-        </div>
-      </div>
-
       {loadingHeatmap ? (
         <HeatmapSkeleton />
       ) : (
@@ -192,7 +180,6 @@ export default function InsightsPage() {
         </h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           {insights.map((insight, idx) => {
-            const Icon = insight.icon;
             const style = insightStyles[insight.type];
             return (
               <Card key={idx} className={cn(style.bg, "border", style.border, "rounded-2xl shadow-sm")}>

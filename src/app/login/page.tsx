@@ -76,13 +76,13 @@ export default function LoginPage() {
             <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-white/10 shadow-lg backdrop-blur-md border border-white/20">
               <Flame className="h-8 w-8 fill-current text-white animate-pulse" />
             </div>
-            <span className="text-4xl font-black tracking-tight">LifeOS</span>
+            <span className="text-4xl font-black tracking-tight">North</span>
           </div>
 
           <div className="space-y-3">
             <h1 className="text-3xl font-bold leading-tight">Private Life Analytics</h1>
             <p className="text-teal-50/90 text-sm leading-relaxed">
-              Your LifeOS data is securely stored in Supabase. Google receives only the tasks and events you explicitly sync.
+              Your North data is securely stored in Supabase. Google receives only the tasks and events you explicitly sync.
             </p>
           </div>
 
@@ -109,7 +109,7 @@ export default function LoginPage() {
           <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-teal-500">
             <Flame className="h-6 w-6 fill-current text-white" />
           </div>
-          <span className="text-2xl font-black text-slate-800">LifeOS</span>
+          <span className="text-2xl font-black text-slate-800">North</span>
         </div>
 
         <div className="w-full max-w-sm space-y-8">
@@ -117,7 +117,7 @@ export default function LoginPage() {
             <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-teal-50 text-teal-600 ring-1 ring-teal-200">
               <Lock className="h-5 w-5" />
             </div>
-            <h2 className="text-2xl font-bold text-slate-800">Unlock LifeOS</h2>
+            <h2 className="text-2xl font-bold text-slate-800">Unlock North</h2>
             <p className="text-slate-500 text-sm">
               Enter your password to access the dashboard.
             </p>

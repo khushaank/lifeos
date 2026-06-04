@@ -12,7 +12,7 @@ import {
   Scale,
   BrainCircuit,
   Briefcase,
-  Flame,
+  Dumbbell,
   Target,
   Film,
   Store,
@@ -37,6 +37,7 @@ const PAGES: SearchItem[] = [
   { id: "p-journal", label: "Decision Journal", href: "/journal", group: "Pages", icon: Scale },
   { id: "p-opportunities", label: "Missed Opportunities", href: "/opportunities", group: "Pages", icon: Target },
   { id: "p-movies", label: "Movies", href: "/movies", group: "Pages", icon: Film },
+  { id: "p-workout", label: "Workout Timeline", href: "/workout", group: "Pages", icon: Dumbbell },
   { id: "p-insights", label: "Insights & Heatmaps", href: "/insights", group: "Pages", icon: BrainCircuit },
   { id: "p-goals", label: "Goals", href: "/goals", group: "Pages", icon: Target },
   { id: "p-kpi", label: "Personal KPI (CEO)", href: "/kpi", group: "Pages", icon: Briefcase },
@@ -47,7 +48,6 @@ const PAGES: SearchItem[] = [
     group: "Pages",
     icon: Store,
   },
-  { id: "p-wwhd", label: "WWHD", href: "/wwhd", group: "Pages", icon: Flame },
 ];
 
 export function CommandPalette() {

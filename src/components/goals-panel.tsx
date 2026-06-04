@@ -67,7 +67,7 @@ function GoalsPanel({ limit = 4 }: { limit?: number }) {
           <CardDescription className="text-xs">Progress from your logs</CardDescription>
         </div>
         <Link href="/goals" className="text-xs text-teal-600 hover:text-teal-700 dark:text-teal-400 flex items-center font-semibold">
-          Manage <ChevronRight className="h-3 w-3 ml-0.5" />
+          Change <ChevronRight className="h-3 w-3 ml-0.5" />
         </Link>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -78,7 +78,7 @@ function GoalsPanel({ limit = 4 }: { limit?: number }) {
         )}
         <Link href="/goals">
           <Button variant="outline" size="sm" className="w-full text-xs cursor-pointer">
-            Add or edit goals
+            Change goals
           </Button>
         </Link>
       </CardContent>

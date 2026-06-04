@@ -5,6 +5,7 @@ const GOOGLE_SCOPES = "https://www.googleapis.com/auth/calendar.events https://w
 
 type TokenResponse = {
   access_token?: string;
+  expires_in?: number;
   error?: string;
 };
 
@@ -31,6 +32,43 @@ declare global {
 
 let accessToken: string | null = null;
 
+const GOOGLE_TOKEN_KEY = "lifeos-google-access-token";
+const GOOGLE_TOKEN_EXPIRES_KEY = "lifeos-google-token-expires-at";
+const GOOGLE_CONNECTED_KEY = "lifeos-google-connected";
+const GOOGLE_LAST_CONNECTED_KEY = "lifeos-google-last-connected-at";
+
+function getStoredAccessToken() {
+  if (typeof window === "undefined") return null;
+  const token = localStorage.getItem(GOOGLE_TOKEN_KEY);
+  const expiresAt = Number(localStorage.getItem(GOOGLE_TOKEN_EXPIRES_KEY) || 0);
+  if (!token || !expiresAt || Date.now() >= expiresAt - 60_000) {
+    localStorage.removeItem(GOOGLE_TOKEN_KEY);
+    localStorage.removeItem(GOOGLE_TOKEN_EXPIRES_KEY);
+    return null;
+  }
+  return token;
+}
+
+function saveAccessToken(token: string, expiresIn = 3600) {
+  if (typeof window === "undefined") return;
+  accessToken = token;
+  localStorage.setItem(GOOGLE_TOKEN_KEY, token);
+  localStorage.setItem(GOOGLE_TOKEN_EXPIRES_KEY, String(Date.now() + expiresIn * 1000));
+  localStorage.setItem(GOOGLE_CONNECTED_KEY, "true");
+  localStorage.setItem(GOOGLE_LAST_CONNECTED_KEY, new Date().toISOString());
+}
+
+function clearAccessToken({ keepConnected = true } = {}) {
+  accessToken = null;
+  if (typeof window === "undefined") return;
+  localStorage.removeItem(GOOGLE_TOKEN_KEY);
+  localStorage.removeItem(GOOGLE_TOKEN_EXPIRES_KEY);
+  if (!keepConnected) {
+    localStorage.removeItem(GOOGLE_CONNECTED_KEY);
+    localStorage.removeItem(GOOGLE_LAST_CONNECTED_KEY);
+  }
+}
+
 export function getStoredGoogleClientId() {
   if (typeof window === "undefined") return process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || "390278448587-68evhbhdm0sohmjqs6ikdvrth1ngue0p.apps.googleusercontent.com";
   return localStorage.getItem("lifeos-google-client-id") || process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || "390278448587-68evhbhdm0sohmjqs6ikdvrth1ngue0p.apps.googleusercontent.com";
@@ -41,7 +79,29 @@ export function saveGoogleClientId(clientId: string) {
 }
 
 export function hasGoogleToken() {
-  return Boolean(accessToken);
+  if (accessToken) return true;
+  const stored = getStoredAccessToken();
+  if (stored) {
+    accessToken = stored;
+    return true;
+  }
+  return false;
+}
+
+export function hasSavedGoogleConnection() {
+  if (typeof window === "undefined") return false;
+  return localStorage.getItem(GOOGLE_CONNECTED_KEY) === "true";
+}
+
+export function getGoogleConnectionSnapshot() {
+  if (typeof window === "undefined") {
+    return { connected: false, clientId: getStoredGoogleClientId(), lastConnectedAt: null };
+  }
+  return {
+    connected: hasGoogleToken() || hasSavedGoogleConnection(),
+    clientId: getStoredGoogleClientId(),
+    lastConnectedAt: localStorage.getItem(GOOGLE_LAST_CONNECTED_KEY),
+  };
 }
 
 function loadGoogleScript() {
@@ -68,11 +128,12 @@ function loadGoogleScript() {
   });
 }
 
-export async function connectGoogle(clientId = getStoredGoogleClientId()) {
+export async function connectGoogle(clientId = getStoredGoogleClientId(), options: { prompt?: "consent" | "" } = {}) {
   if (!clientId) {
     throw new Error("Add a Google OAuth Client ID in Settings first.");
   }
 
+  saveGoogleClientId(clientId);
   await loadGoogleScript();
 
   return new Promise<string>((resolve, reject) => {
@@ -84,24 +145,26 @@ export async function connectGoogle(clientId = getStoredGoogleClientId()) {
           reject(new Error(response.error || "Google authorization failed."));
           return;
         }
-        accessToken = response.access_token;
+        saveAccessToken(response.access_token, response.expires_in);
         resolve(response.access_token);
       },
     });
 
-    client?.requestAccessToken({ prompt: "consent" });
+    client?.requestAccessToken({
+      prompt: options.prompt ?? (hasSavedGoogleConnection() ? "" : "consent"),
+    });
   });
 }
 
 export function disconnectGoogle() {
   if (!accessToken || !window.google?.accounts?.oauth2) {
-    accessToken = null;
+    clearAccessToken({ keepConnected: false });
     return Promise.resolve();
   }
 
   return new Promise<void>((resolve) => {
     window.google?.accounts.oauth2.revoke(accessToken as string, () => {
-      accessToken = null;
+      clearAccessToken({ keepConnected: false });
       resolve();
     });
   });
@@ -109,7 +172,12 @@ export function disconnectGoogle() {
 
 async function googleFetch<T>(url: string, init: RequestInit = {}) {
   if (!accessToken) {
-    await connectGoogle();
+    const stored = getStoredAccessToken();
+    if (stored) {
+      accessToken = stored;
+    } else {
+      await connectGoogle(getStoredGoogleClientId(), { prompt: hasSavedGoogleConnection() ? "" : "consent" });
+    }
   }
 
   const response = await fetch(url, {
@@ -122,8 +190,8 @@ async function googleFetch<T>(url: string, init: RequestInit = {}) {
   });
 
   if (response.status === 401) {
-    accessToken = null;
-    throw new Error("Google session expired. Connect again and retry.");
+    clearAccessToken({ keepConnected: true });
+    throw new Error("Google session expired. Reconnect once and LifeOS will remember this browser.");
   }
 
   if (!response.ok) {

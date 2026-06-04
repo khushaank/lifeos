@@ -157,10 +157,9 @@ export default function BooksPage() {
 
   return (
     <PageShell maxWidth="5xl" mainClassName="space-y-6" className="pb-16">
-      {/* Header card with glassmorphism */}
       <div className="rounded-3xl border border-slate-200/80 bg-gradient-to-r from-sky-500/10 via-teal-500/5 to-transparent px-6 py-6 sm:py-8 shadow-sm dark:border-slate-800">
         <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-start gap-4">
+          <div className="hidden">
             <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-sky-500/15 text-sky-600 dark:bg-sky-500/20 dark:text-sky-400">
               <BookOpen className="h-6 w-6" />
             </div>
